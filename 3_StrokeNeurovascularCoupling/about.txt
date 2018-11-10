@@ -1,0 +1,13 @@
+The data has already been preprocessed.
+Data location: Proc2/170126, Proc2/170127
+Mice were given stroke.
+
+This data has both GCAMP signal and OIS signal, thus allowing neurovascular coupling analysis.
+
+Goal:
+* lag analysis (global lag, projection lag, homotopic lag)
+	* Hb
+	* gCaMP
+	* Hb and gCaMP same frequency (both directions)
+* spike-triggered averaging
+* Hb gCaMP association in different frequencies

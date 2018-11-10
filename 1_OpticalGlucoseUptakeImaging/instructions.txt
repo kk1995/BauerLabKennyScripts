@@ -1,0 +1,11 @@
+Order in which the scripts should be run:
+
+getRaw
+saveHbAndFluor
+resampleSave
+removeHb
+
+Plotting scripts:
+
+plotTOIHbFluor
+plotTOIHbRemoved
