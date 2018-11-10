@@ -27,6 +27,22 @@ for excelRow = excelRows
         systemInfo = mouse.expSpecific.sysInfo(systemType);
         sessionInfo = mouse.expSpecific.session2procInfo(sessionType);
         
+        % manually change sessionInfo since Xiaodan uses some different
+        % parameters for fc and stim sessions
+        if strcmp(char(sessionType),'fc')
+            sessionInfo.lowpass = 0.08;
+            sessionInfo.highpass = 0.01;
+        elseif strcmp(char(sessionType),'stim')
+            sessionInfo.freqout = 1;
+            sessionInfo.lowpass = 4;
+            % If the data is downsampled to 1 Hz, how does lowpass at 4 Hz
+            % make any sense?
+            sessionInfo.highpass = 0.5;
+            % Highpass is already at Nyquist frequency for downsampled
+            % frequency. I recommend making downsampling not as harsh
+            % (maybe make it 8 Hz?)
+        end
+            
         if isfile(maskFileName)
             % mask file exists
             [xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
