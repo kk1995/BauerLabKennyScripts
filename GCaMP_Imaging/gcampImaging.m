@@ -1,4 +1,4 @@
-function [raw,time,xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+function [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
     = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir, varargin)
 %gcampImaging Processes tiff file to output hemoglobin data, gcamp, and
 %corrected gcamp data
@@ -48,7 +48,7 @@ greenWavelength = 512; % nm
 bluePath = 5.6E-4; % m
 greenPath = 5.7E-4; % m
 
-detrendFluor = true;
+bandpassFluor = true;
 
 extCoeffFile = strcat(extCoeffDir,"prahl_extinct_coef.txt");
 
@@ -69,6 +69,8 @@ else
     
     [time,raw] = mouse.preprocess.loadTiffResample(tiffFileName,speciesNum,freqIn,freqOut);
 end
+
+fs = freqOut;
 
 % get rid of first frame since it is usually nonsensical
 raw(:,:,:,1) = [];
@@ -93,9 +95,11 @@ for ind = 1:numel(systemInfo.LEDFiles)
 end
 
 highpassFreq = sessionInfo.highpass;
+lowpassFreq = sessionInfo.lowpass;
+bandpassFreq = [highpassFreq lowpassFreq];
 
 [hbData, ~, ~]= ...
-    mouse.expSpecific.procOIS(raw(:,:,hbSpecies,:), freqOut, highpassFreq, ...
+    mouse.expSpecific.procOIS(raw(:,:,hbSpecies,:), fs, bandpassFreq, ...
     systemInfo.LEDFiles(hbSpecies), extCoeffFile, isbrain);
 % hbData is in unit of mole/L
 
@@ -105,7 +109,7 @@ xform_hb = mouse.expSpecific.transformHb(hbData, markers);
 disp('get gcamp data');
 
 gcamp = raw(:,:,gcampSpecies,:);
-gcamp = mouse.expSpecific.procFluor(gcamp,sessionInfo,detrendFluor); % detrending occurs
+gcamp = mouse.expSpecific.procFluor(gcamp,fs,bandpassFreq,bandpassFluor); % detrending occurs
 
 xform_gcamp = mouse.expSpecific.transformHb(gcamp, markers);
 

@@ -7,7 +7,7 @@
 %% state the tiff file
 
 % tiffFileName = "L:\181031-GCampM2-fc1.tif";
-tiffFileName = "J:\180813\180813-ProbeW3M2-Pre.tif";
+tiffFileName = "J:\180813\180813-ProbeW3M2-Post.tif";
 
 %% state where the led spectrum files and extinction coefficient files are
 
@@ -28,16 +28,17 @@ systemInfo = mouse.expSpecific.sysInfo('fcOIS2_Fluor');
 
 % sessionType = 'fc' or 'stim'
 sessionInfo = mouse.expSpecific.session2procInfo('fc');
+sessionInfo.freqout = 2;
 
 %% get gcamp and hb data
 
-[xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-    = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir);
+% [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+%     = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir);
 
-% % if brain mask and markers are available:
-% [xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-%     = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir, ...
-%     isbrain, markers);
+% if brain mask and markers are available:
+[raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+    = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir, ...
+    isbrain, markers);
 
 % isbrain = logical nxn array of brain mask.
 % markers = the brain markers that are created during the whole GUI where
