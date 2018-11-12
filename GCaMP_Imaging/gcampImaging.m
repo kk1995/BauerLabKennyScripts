@@ -1,4 +1,4 @@
-function [xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+function [raw,time,xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
     = gcampImaging(tiffFileName, systemInfo, sessionInfo, ledDir, extCoeffDir, varargin)
 %gcampImaging Processes tiff file to output hemoglobin data, gcamp, and
 %corrected gcamp data
@@ -54,14 +54,21 @@ extCoeffFile = strcat(extCoeffDir,"prahl_extinct_coef.txt");
 
 %% load tif file and convert it to mat file
 
-disp('load tif file, then downsample');
+disp('load tif file');
 
 freqIn = sessionInfo.framerate; % sampling rate
 freqOut = sessionInfo.freqout;
 
-disp(['  downsample from ' num2str(freqIn) ' Hz to ' num2str(freqOut) ' Hz']);
-
-[time,raw] = mouse.preprocess.loadTiffResample(tiffFileName,speciesNum,freqIn,freqOut);
+if freqOut == freqIn
+    raw = mouse.preprocess.loadTiffRawMultiple(tiffFileName,speciesNum);
+    time = 0:size(raw,4) - 1;
+    time = time./freqIn;
+    
+else
+    disp(['  downsample from ' num2str(freqIn) ' Hz to ' num2str(freqOut) ' Hz']);
+    
+    [time,raw] = mouse.preprocess.loadTiffResample(tiffFileName,speciesNum,freqIn,freqOut);
+end
 
 % get rid of first frame since it is usually nonsensical
 raw(:,:,:,1) = [];
@@ -85,9 +92,11 @@ for ind = 1:numel(systemInfo.LEDFiles)
     systemInfo.LEDFiles(ind) = strcat(ledDir,systemInfo.LEDFiles(ind));
 end
 
-[hbData, ~, ~, ~]=...
-    mouse.expSpecific.procOIS(raw(:,:,hbSpecies,:), ...
-    sessionInfo, systemInfo.LEDFiles(hbSpecies), extCoeffFile, isbrain);
+highpassFreq = sessionInfo.highpass;
+
+[hbData, ~, ~]= ...
+    mouse.expSpecific.procOIS(raw(:,:,hbSpecies,:), freqOut, highpassFreq, ...
+    systemInfo.LEDFiles(hbSpecies), extCoeffFile, isbrain);
 % hbData is in unit of mole/L
 
 xform_hb = mouse.expSpecific.transformHb(hbData, markers);
