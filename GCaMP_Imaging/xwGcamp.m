@@ -1,10 +1,6 @@
-%% state where the led spectrum files and extinction coefficient files are
-ledDir = "C:\Repositories\GitHub\OIS\Spectroscopy\LED Spectra\";
-extCoeffDir = "C:\Repositories\GitHub\OIS\Spectroscopy\";
-
-%% run for each excel row
+% run for each excel row
 excelFile = "D:\data\GCaMP_awake.xlsx";
-excelRows = 2:7;
+excelRows = 2;
 
 for excelRow = excelRows
     [~, ~, excelRaw]=xlsread(excelFile,1, ['A',num2str(excelRow),':G',num2str(excelRow)]);
@@ -16,50 +12,54 @@ for excelRow = excelRows
     sessionType = excelRaw{6}; sessionType = sessionType(3:end-2);
     frameRate = excelRaw{7};
     
+    systemInfo = mouse.expSpecific.sysInfo(systemType);
+    sessionInfo = mouse.expSpecific.session2procInfo(sessionType);
+    
+    % manually change sessionInfo since Xiaodan uses some different
+    % parameters for fc and stim sessions
+    if strcmp(char(sessionType),'fc')
+        sessionInfo.framerate = frameRate;
+        sessionInfo.freqout = frameRate;
+        sessionInfo.highpass = 0.01;
+        sessionInfo.lowpass = 0.5;
+    elseif strcmp(char(sessionType),'stim')
+        sessionInfo.framerate = frameRate;
+        sessionInfo.freqout = frameRate;
+        sessionInfo.highpass = 0.01;
+        sessionInfo.lowpass = 0.5;
+        % Highpass is already at Nyquist frequency for downsampled
+        % frequency. I recommend making downsampling not as harsh
+        % (maybe make it 8 Hz?)
+    end
+    
+    maskFileName = strcat(recDate,"-",mouseName,"-",sessionType,"-mask.mat");
+    maskFileName = fullfile(saveDir,maskFileName);
+    
     for runInd = 1:3 % for each run
-        tiffFileName = strcat(recDate,"-",mouseName,"-",sessionType,"-",num2str(runInd),".mat");
+        
+        tiffFileName = strcat(recDate,"-",mouseName,"-",sessionType,num2str(runInd),".tif");
         tiffFileName = fullfile(tiffFileDir,tiffFileName);
-        saveDataFileName = strcat(recDate,"-",mouseName,"-",sessionType,"-",num2str(runInd),"-processed.mat");
+        saveDataFileName = strcat(recDate,"-",mouseName,"-",sessionType,num2str(runInd),"-processed.mat");
         saveDataFileName = fullfile(saveDir,saveDataFileName);
-        maskFileName = strcat(recDate,"-",mouseName,"-",sessionType,"-",num2str(runInd),"-mask.mat");
-        maskFileName = fullfile(saveDir,maskFileName);
         
-        systemInfo = mouse.expSpecific.sysInfo(systemType);
-        sessionInfo = mouse.expSpecific.session2procInfo(sessionType);
-        
-        % manually change sessionInfo since Xiaodan uses some different
-        % parameters for fc and stim sessions
-        if strcmp(char(sessionType),'fc')
-            sessionInfo.lowpass = 0.08;
-            sessionInfo.highpass = 0.01;
-        elseif strcmp(char(sessionType),'stim')
-            sessionInfo.freqout = 1;
-            sessionInfo.lowpass = 4;
-            % If the data is downsampled to 1 Hz, how does lowpass at 4 Hz
-            % make any sense?
-            sessionInfo.highpass = 0.5;
-            % Highpass is already at Nyquist frequency for downsampled
-            % frequency. I recommend making downsampling not as harsh
-            % (maybe make it 8 Hz?)
-        end
-            
         if isfile(maskFileName)
+            
+            load(maskFileName);
+            
             % mask file exists
-            [xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = gcampImaging(tiffFileName, systemInfo, sessionInfo, ...
-                ledDir, extCoeffDir);
+            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers);
         else
             % mask file does not exist, so it has to be created
-            [xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = gcampImaging(tiffFileName, systemInfo, sessionInfo, ...
-                ledDir, extCoeffDir, isbrain, markers);
+            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo);
             
             % save mask
             save(maskFileName,'isbrain','xform_isbrain','markers');
         end
         
         % save data
-        save(saveDataFileName,'xform_hb','xform_gcamp','xform_gcampCorr',...
+        save(saveDataFileName,'raw','time','xform_hb','xform_gcamp','xform_gcampCorr',...
             'isbrain','xform_isbrain','markers','-v7.3');
     end
 end

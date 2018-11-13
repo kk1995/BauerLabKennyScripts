@@ -69,35 +69,41 @@ for file = 1:fileNumel
         dataHbT = squeeze(sum(dataHbT(:,:,species,:),3));
         dataGCaMP = gcamp6corr;
         
+        % filter data
+        dataHbO = mouse.freq.filterData(dataHbO,fMin,fMax,sR);
+        dataHbR = mouse.freq.filterData(dataHbR,fMin,fMax,sR);
+        dataHbT = mouse.freq.filterData(dataHbT,fMin,fMax,sR);
+        dataGCaMP = mouse.freq.filterData(dataGCaMP,fMin,fMax,sR);
+        
         % gsr
         if doGsr
-            dataHbO = gsr(dataHbO,maskRun);
-            dataHbR = gsr(dataHbR,maskRun);
-            dataHbT = gsr(dataHbT,maskRun);
-            dataGCaMP = gsr(dataGCaMP,maskRun);
+            dataHbO = mouse.preprocess.gsr(dataHbO,maskRun);
+            dataHbR = mouse.preprocess.gsr(dataHbR,maskRun);
+            dataHbT = mouse.preprocess.gsr(dataHbT,maskRun);
+            dataGCaMP = mouse.preprocess.gsr(dataGCaMP,maskRun);
         end
         
         
         % fc analysis
-        fcDataRun = regionalFC(dataHbO,fRange,sR,maskRun,roi);
+        fcDataRun = mouse.conn.regionalFC(dataHbO,fRange,sR,maskRun,roi);
         fcDataRun = mean(fcDataRun,1);
         fcDataRunMouse = nan(128,128);
         fcDataRunMouse(maskRun(:)) = fcDataRun;
         fcDataHbO = cat(3,fcDataHbO,fcDataRunMouse);
         
-        fcDataRun = regionalFC(dataHbR,fRange,sR,maskRun,roi);
+        fcDataRun = mouse.conn.regionalFC(dataHbR,fRange,sR,maskRun,roi);
         fcDataRun = mean(fcDataRun,1);
         fcDataRunMouse = nan(128,128);
         fcDataRunMouse(maskRun(:)) = fcDataRun;
         fcDataHbR = cat(3,fcDataHbR,fcDataRunMouse);
         
-        fcDataRun = regionalFC(dataHbT,fRange,sR,maskRun,roi);
+        fcDataRun = mouse.conn.regionalFC(dataHbT,fRange,sR,maskRun,roi);
         fcDataRun = mean(fcDataRun,1);
         fcDataRunMouse = nan(128,128);
         fcDataRunMouse(maskRun(:)) = fcDataRun;
         fcDataHbT = cat(3,fcDataHbT,fcDataRunMouse);
         
-        fcDataRun = regionalFC(dataGCaMP,fRange,sR,maskRun,roi);
+        fcDataRun = mouse.conn.regionalFC(dataGCaMP,fRange,sR,maskRun,roi);
         fcDataRun = mean(fcDataRun,1);
         fcDataRunMouse = nan(128,128);
         fcDataRunMouse(maskRun(:)) = fcDataRun;
