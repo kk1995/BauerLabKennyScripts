@@ -1,6 +1,6 @@
 % run for each excel row
 excelFile = "D:\data\GCaMP_awake.xlsx";
-excelRows = 2;
+excelRows = 2:7;
 
 for excelRow = excelRows
     [~, ~, excelRaw]=xlsread(excelFile,1, ['A',num2str(excelRow),':G',num2str(excelRow)]);
@@ -26,13 +26,13 @@ for excelRow = excelRows
         sessionInfo.framerate = frameRate;
         sessionInfo.freqout = frameRate;
         sessionInfo.highpass = 0.01;
-        sessionInfo.lowpass = 0.5;
+        sessionInfo.lowpass = 8;
         % Highpass is already at Nyquist frequency for downsampled
         % frequency. I recommend making downsampling not as harsh
         % (maybe make it 8 Hz?)
     end
     
-    maskFileName = strcat(recDate,"-",mouseName,"-",sessionType,"-mask.mat");
+    maskFileName = strcat(recDate,"-",mouseName,"-mask.mat");
     maskFileName = fullfile(saveDir,maskFileName);
     
     for runInd = 1:3 % for each run

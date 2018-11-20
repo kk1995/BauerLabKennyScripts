@@ -10,6 +10,9 @@ function [lagData,ampData] = crossSeedLag(data1,data2,roiInd,varargin)
 %       validInd (optional)
 %   If positive, data1's roi data lags behind data2
 
+quadFitUse = true;
+positiveSignOnly = true;
+
 if numel(varargin) < 1
     validInd = [];
 else
@@ -27,7 +30,8 @@ data2 = reshape(data2,[],dataSize(end));
 roiData = nanmean(data1(roiInd,:),1)';
 
 for pix = 1:prod(dataSize(1:end-1))
-    [lagData(pix), ampData(pix)] = mouse.conn.findLag(roiData,data2(pix,:),true,true,validInd);
+    [lagData(pix), ampData(pix)] = mouse.conn.findLag(roiData,data2(pix,:),...
+        quadFitUse,positiveSignOnly,validInd);
 end
 
 end
