@@ -30,7 +30,7 @@ sessionInfo.freqout = 16.8;
 %% get gcamp and hb data
 
 load('D:\data\temp\pre196_seeds.mat'); % I
-isbrain = imread('D:\data\temp\pre196_mask.mat');
+isbrain = imread('D:\data\temp\pre196_mask.tif');
 isbrain = isbrain > 0;
 
 % [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
