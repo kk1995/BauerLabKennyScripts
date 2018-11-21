@@ -67,8 +67,11 @@ gcampCorrAvg = nanmean(reshape(cat(4,xform_gcampCorr(:,:,:,1),xform_gcampCorr),[
 
 stimInd = find(plotTime > 5 & plotTime < 10);
 stimResp = squeeze(nanmean(gcampCorrAvg(:,:,1,stimInd),4));
-stimROI = stimResp >= 0.75*max(stimResp(:));
-stimROI(:,59:128) = false;
+candidateROI = false(128);
+candidateROI(60:108,1:40) = true;
+
+stimROI = stimResp >= 0.5*max(stimResp(candidateROI));
+stimROI(~candidateROI) = false;
 
 hbStimAvg = reshape(hbAvg,128*128,2,[]);
 gcampStimAvg = reshape(gcampAvg,128*128,2,[]);
