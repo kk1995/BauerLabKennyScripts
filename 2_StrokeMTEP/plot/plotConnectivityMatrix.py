@@ -42,9 +42,6 @@ def imagesc(ax,data,clim,boundary,tickLoc):
         ax.plot([x, x],yLim, linewidth=1, color='black')
         ax.plot(yLim,[x, x], linewidth=1, color='black')
 
-
-
-
 def main():
     rawFile = 'D:\\data\\StrokeMTEP\\PT_Groups_avg_reorganized.mat'
     maskFile = 'D:\\data\\atlas.mat'

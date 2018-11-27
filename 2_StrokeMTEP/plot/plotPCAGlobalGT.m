@@ -1,9 +1,14 @@
-close all;
+% close all;
 
 load('D:\data\StrokeMTEP\NodalConnectivity.mat');
-% load('D:\data\StrokeMTEP\NodalConnectivityDetailedMotor.mat');
-
 load('D:\data\atlas.mat');
+% calculate coordinate of seeds (not just center coordinate)
+seed2DCoor = mouse.plot.circleCoor(seedCenter(1,:),3); % sees pixels needed for first seed
+seedPix = nan(size(seed2DCoor,2),size(seedCenter,1)); % initializes
+for seedInd = 1:size(seedCenter,1)
+    seed2DCoor = mouse.plot.circleCoor(seedCenter(seedInd,:),3);
+    seedPix(:,seedInd) = seed2DCoor(2,:) + size(isbrain,1)*(seed2DCoor(1,:)-1);
+end
 
 xRotAngle = 90;
 
@@ -11,10 +16,72 @@ corrMapAll = [];
 D_weiAll = [];
 iterNum = 100;
 
+%% get roi indices based on pca
+pcInd = 1; % principal component index
+clusterSizeThr = 200; % pixels
+seedOverlapThr = 0.5; % how much of the seed needs to be in PC region
+
+% index order
+maskFile = 'D:\data\atlas.mat';
+load(maskFile,'mask','mask2','AtlasSeedsFilled','seednames'); % mask
+SeedsUsed=CalcRasterSeedsUsed(mask);
+length=size(SeedsUsed,1);
+map=[(1:2:length-1) (2:2:length)];
+NewSeedsUsed(:,1)=SeedsUsed(map, 1);
+NewSeedsUsed(:,2)=SeedsUsed(map, 2);
+for n=1:size(NewSeedsUsed,1)
+    idx_inv(n)=sub2ind([128,128], NewSeedsUsed(n,2), NewSeedsUsed(n,1)); % get the indices of the Seed coordinates used to organize the Pix-Pix matrix
+    idx_inv=idx_inv';
+end
+
+% get pca data
+pcaFile = 'D:\data\StrokeMTEP\PT_Groups_PCA.mat';
+load(pcaFile); % coeff, score
+
+z = scoreWithMean(:,pcInd)*coeff(:,pcInd)';
+z = nanmean(z); % 1 x 11188 double
+pcaVal = nan(128,128);
+pcaVal(idx_inv) = z;
+
+% find clusters of high values
+threshold = prctile(abs(pcaVal(:)),95)*0.5;
+aboveThr = abs(pcaVal) >= threshold;
+
+% only select clusters that are big enough
+clusters = bwconncomp(aboveThr,4);
+goodClusters = false(size(clusters.PixelIdxList));
+for clusterInd = 1:numel(goodClusters)
+    if numel(clusters.PixelIdxList{clusterInd}) >= clusterSizeThr
+        goodClusters(clusterInd) = true;
+    end
+end
+clusters.NumObjects = sum(goodClusters);
+clusters.PixelIdxList = clusters.PixelIdxList(goodClusters);
+bigClusters = false(128,128);
+for clusterInd = 1:numel(clusters.PixelIdxList)
+    bigClusters(clusters.PixelIdxList{clusterInd}) = true;
+end
+
+% find whether a seed is in the PC region
+roiInd = [];
+for seedInd = 1:size(seedPix,2)
+    if sum(bigClusters(seedPix(:,seedInd)))/size(seedPix,1) >= seedOverlapThr
+        roiInd = [roiInd seedInd];
+    end
+end
+roiInd(roiInd==3) = [];
+roiInd(roiInd==23) = [];
+
+
+seedPix = seedPix(:,roiInd);
+seedCenter = seedCenter(roiInd,:);
+
+
+%%
 % roiInd = [4:11 13:15 24:31 33:35]; % regions I am interested in showing
 % roiInd = [2:20 22:40]; % whole brain
 % roiInd = [2 4:20 22 24:40]; % whole brain but without RS
-roiInd = [13:20 24:29 33:40]; % out of 40 ind, only PC 1
+% roiInd = [13:20 24:29 33:40]; % out of 40 ind, only PC 1
 % roiInd = [12:18 22:25 29:42];
 % roiInd = [12:16 22:25 29:34 37:42];
 % roiInd = [2:18 20:42];
@@ -66,6 +133,16 @@ for cond = 1:numel(data)
         output{cond}.global.smallWorldPropensity(mouseInd) = outputTemp.global.smallWorldPropensity;
     end
 end
+
+%% plot pca
+nodeLoc = seedCenter;
+nodeVal = 0;
+cLim = [0 1];
+cMap = gray(100);
+f0 = figure;
+ax = mouse.plot.plotBrain(f0,pcaVal,mask&mask2,[-0.01 0.01],'jet');
+ax = mouse.plot.plotNodes(ax,nodeLoc,1,cLim,cMap,96,false);
+ax = mouse.plot.plotScatter(ax,nodeLoc,0,cLim,cMap,96,3);
 
 %% global plot
 

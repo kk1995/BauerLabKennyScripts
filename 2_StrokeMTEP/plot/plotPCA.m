@@ -154,7 +154,7 @@ seedVal = seedVal(roiInd);
 seedCenter = seedCenter(roiInd,:);
 
 cMap = jet(100);
-blueRedMap = mouseAnalysis.plot.blueWhiteRed(100,[1 0],true);
+blueRedMap = mouse.plot.blueWhiteRed(100,[1 0],true);
 gMap = gray(100);
 
 f2 = figure('Position',[50 650 600 300]);
@@ -169,7 +169,7 @@ addColorBar = true;
 pcaVal = nan(128,128);
 z = scoreWithMean(:,n)*coeff(:,n)';
 pcaVal(idx_inv) = mean(z,2);
-ax = mouseAnalysis.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar);
+ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar);
 title(num2str(var(n)));
 
 f3 = figure('Position',[50 650 600 300]);
@@ -181,26 +181,40 @@ axis(ax,'square');
 set(ax,'Visible','off');
 actualVal = nan(128,128);
 actualVal(idx_inv) = nanmean(diffMTEP_PT_minus_Veh_PT);
-ax = mouseAnalysis.plot.plotBrain(ax,actualVal,mask2 & mask,[-0.02 0.02],cMap,addColorBar);
+ax = mouse.plot.plotBrain(ax,actualVal,mask2 & mask,[-0.02 0.02],cMap,addColorBar);
 title('MTEP PT - Veh PT');
 
-f4 = figure('Position',[50 650 1700 300]);
+%%
+% f4 = figure('Position',[50 650 1700 300]);
+f4 = figure('Position',[50 650 1200 300]);
 p = panel();
-p.pack('h', {0.19 0.19 0.19 0.19 0.19 []});
-p.margin = [0 0 0 0];
-for n = 1:5
+p.pack('h', {0.32 0.32 0.32 []});
+p.margin = [15 0 0 0];
+
+% get infarct site
+centerCoor = [59 37];
+radius = [25 10];
+coor = mouse.plot.ovalCoor(centerCoor,radius);
+coorInd = coor(1,:) + (128*(coor(2,:)-1));
+infarctROI = false(128); infarctROI(coorInd) = true;
+color = [0.5 0.5 0.5];
+alpha = 0.5;
+for n = 1:3
     ax = p(n).select();
+    title(ax,num2str(100*latent(n)/sum(latent)));
     axis(ax,'square');
     set(ax,'Visible','off');
     addColorBar = false;
-    if n == 5
+    if n == 3
         addColorBar = true;
     end
     pcaVal = nan(128,128);
     z = scoreWithMean(:,n)*coeff(:,n)';
     pcaVal(idx_inv) = mean(z,2);
-    ax = mouseAnalysis.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar);
+    ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar,0.01);
     % s = plotNodes(s,seedCenter,seedVal,[0 1],blueRedMap,160,false);
     %     s = plotScatter(s,seedCenter,seedVal,[0 1],gMap,160,2);
+    ax = mouse.plot.plotCluster(ax,infarctROI,color,alpha);
+    ax = mouse.plot.plotContour(ax,infarctROI,'k');
+    title(ax(end),num2str(100*latent(n)/sum(latent)));
 end
-title(num2str(var(n)));
