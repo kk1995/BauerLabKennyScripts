@@ -1,12 +1,13 @@
 % close all;
 
-load('D:\data\StrokeMTEP\NodalConnectivity.mat');
+load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
 load('D:\data\atlas.mat');
+seedCenterTotal = seedCenter;
 % calculate coordinate of seeds (not just center coordinate)
-seed2DCoor = mouse.plot.circleCoor(seedCenter(1,:),3); % sees pixels needed for first seed
-seedPix = nan(size(seed2DCoor,2),size(seedCenter,1)); % initializes
-for seedInd = 1:size(seedCenter,1)
-    seed2DCoor = mouse.plot.circleCoor(seedCenter(seedInd,:),3);
+seed2DCoor = mouse.plot.circleCoor(seedCenterTotal(1,:),3); % sees pixels needed for first seed
+seedPix = nan(size(seed2DCoor,2),size(seedCenterTotal,1)); % initializes
+for seedInd = 1:size(seedCenterTotal,1)
+    seed2DCoor = mouse.plot.circleCoor(seedCenterTotal(seedInd,:),3);
     seedPix(:,seedInd) = seed2DCoor(2,:) + size(isbrain,1)*(seed2DCoor(1,:)-1);
 end
 
@@ -72,9 +73,14 @@ end
 roiInd(roiInd==3) = [];
 roiInd(roiInd==23) = [];
 
+notRoiInd = 1:size(seedPix,2);
+notRoiInd(roiInd) = [];
+notRoiInd(notRoiInd==1) = [];
+notRoiInd(notRoiInd==21) = [];
 
 seedPix = seedPix(:,roiInd);
-seedCenter = seedCenter(roiInd,:);
+seedCenterRoi = seedCenterTotal(roiInd,:);
+seedCenterNotRoi = seedCenterTotal(notRoiInd,:);
 
 
 %%
@@ -105,6 +111,10 @@ for cond = 1:numel(data)
     % dealing with negative values
     data{cond}(data{cond} < 0) = 0;
     
+    % making diagonal inf
+    for mouseInd = 1:size(data{cond},3)
+        data{cond}((1:size(data{cond},1)+1:size(data{cond},1)*size(data{cond},2))+(mouseInd-1)*size(data{cond},1)*size(data{cond},2)) = inf;
+    end
     % limiting data to the roi
     data{cond} = data{cond}(roiInd,roiInd,:);
     
@@ -135,14 +145,16 @@ for cond = 1:numel(data)
 end
 
 %% plot pca
-nodeLoc = seedCenter;
-nodeVal = 0;
 cLim = [0 1];
 cMap = gray(100);
+cMap2 = hsv(100);
 f0 = figure;
 ax = mouse.plot.plotBrain(f0,pcaVal,mask&mask2,[-0.01 0.01],'jet');
-ax = mouse.plot.plotNodes(ax,nodeLoc,1,cLim,cMap,96,false);
-ax = mouse.plot.plotScatter(ax,nodeLoc,0,cLim,cMap,96,3);
+ax = mouse.plot.plotNodes(ax,seedCenterRoi,1,cLim,cMap,120,false);
+ax = mouse.plot.plotScatter(ax,seedCenterRoi,0,cLim,cMap,120,3);
+% ax = mouse.plot.plotNodes(ax,seedCenterNotRoi,0.2,cLim,cMap2,32,false);
+ax = mouse.plot.plotScatter(ax,seedCenterNotRoi,0,cLim,cMap,32,1.5);
+% ax = mouse.plot.plotScatter(ax,seedCenterNotRoi,0,cLim,cMap,96,1,'x');
 
 %% global plot
 

@@ -1,6 +1,6 @@
 close all;
 
-load('D:\data\StrokeMTEP\NodalConnectivity.mat');
+load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
 % load('D:\data\StrokeMTEP\NodalConnectivityDetailedMotor.mat');
 
 load('D:\data\atlas.mat');
@@ -51,17 +51,17 @@ output1.global.pathLength = nan(size(data1,3),1);
 output1.global.smallWorldness = nan(size(data1,3),1);
 output1.global.smallWorldPropensity = nan(size(data1,3),1);
 
-for mouse = 1:size(data1,3)
-    outputTemp = graphTheoryMeasures(data1(:,:,mouse));
-    output1.local.clusterCoefficient(:,mouse) = outputTemp.local.clusterCoefficient;
-    output1.local.pathLength(:,mouse) = outputTemp.local.pathLength;
-    output1.local.strength(:,mouse) = outputTemp.local.strength;
-    output1.local.betweenness(:,mouse) = outputTemp.local.betweenness;
-    output1.local.hub(:,mouse) = outputTemp.local.hub;
-    output1.global.clusterCoefficient(mouse) = outputTemp.global.clusterCoefficient;
-    output1.global.pathLength(mouse) = outputTemp.global.pathLength;
-    output1.global.smallWorldness(mouse) = outputTemp.global.smallWorldness;
-    output1.global.smallWorldPropensity(mouse) = outputTemp.global.smallWorldPropensity;
+for mouseInd = 1:size(data1,3)
+    outputTemp = mouse.graph.graphTheoryMeasures(data1(:,:,mouseInd));
+    output1.local.clusterCoefficient(:,mouseInd) = outputTemp.local.clusterCoefficient;
+    output1.local.pathLength(:,mouseInd) = outputTemp.local.pathLength;
+    output1.local.strength(:,mouseInd) = outputTemp.local.strength;
+    output1.local.betweenness(:,mouseInd) = outputTemp.local.betweenness;
+    output1.local.hub(:,mouseInd) = outputTemp.local.hub;
+    output1.global.clusterCoefficient(mouseInd) = outputTemp.global.clusterCoefficient;
+    output1.global.pathLength(mouseInd) = outputTemp.global.pathLength;
+    output1.global.smallWorldness(mouseInd) = outputTemp.global.smallWorldness;
+    output1.global.smallWorldPropensity(mouseInd) = outputTemp.global.smallWorldPropensity;
 end
 
 output2.local.clusterCoefficient = nan(size(data2,1),size(data2,3));
@@ -74,17 +74,17 @@ output2.global.pathLength = nan(size(data2,3),1);
 output2.global.smallWorldness = nan(size(data2,3),1);
 output2.global.smallWorldPropensity = nan(size(data2,3),1);
 
-for mouse = 1:size(data2,3)
-    outputTemp = graphTheoryMeasures(data2(:,:,mouse));
-    output2.local.clusterCoefficient(:,mouse) = outputTemp.local.clusterCoefficient;
-    output2.local.pathLength(:,mouse) = outputTemp.local.pathLength;
-    output2.local.strength(:,mouse) = outputTemp.local.strength;
-    output2.local.betweenness(:,mouse) = outputTemp.local.betweenness;
-    output2.local.hub(:,mouse) = outputTemp.local.hub;
-    output2.global.clusterCoefficient(mouse) = outputTemp.global.clusterCoefficient;
-    output2.global.pathLength(mouse) = outputTemp.global.pathLength;
-    output2.global.smallWorldness(mouse) = outputTemp.global.smallWorldness;
-    output2.global.smallWorldPropensity(mouse) = outputTemp.global.smallWorldPropensity;
+for mouseInd = 1:size(data2,3)
+    outputTemp = mouse.graph.graphTheoryMeasures(data2(:,:,mouseInd));
+    output2.local.clusterCoefficient(:,mouseInd) = outputTemp.local.clusterCoefficient;
+    output2.local.pathLength(:,mouseInd) = outputTemp.local.pathLength;
+    output2.local.strength(:,mouseInd) = outputTemp.local.strength;
+    output2.local.betweenness(:,mouseInd) = outputTemp.local.betweenness;
+    output2.local.hub(:,mouseInd) = outputTemp.local.hub;
+    output2.global.clusterCoefficient(mouseInd) = outputTemp.global.clusterCoefficient;
+    output2.global.pathLength(mouseInd) = outputTemp.global.pathLength;
+    output2.global.smallWorldness(mouseInd) = outputTemp.global.smallWorldness;
+    output2.global.smallWorldPropensity(mouseInd) = outputTemp.global.smallWorldPropensity;
 end
 
 %% global plot

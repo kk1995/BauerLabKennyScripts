@@ -50,6 +50,7 @@ def main():
     f = h5py.File(Path(rawFile),'r')
     vehData = np.array(f['Veh_PT'])
     mtepData = np.array(f['MTEP_PT'])
+    diffData = np.array(f['diff_PT'])
     boundaries = np.array(f['regionStart'])
     boundaries = boundaries.astype(int)
     ticLoc = np.array(f['tickInd'])
@@ -58,9 +59,9 @@ def main():
     ticLoc = ticLoc[0]
     print((vehData.shape) + (3,))
     data = np.zeros(vehData.shape + (3,))
-    data[:,:,0] = vehData
-    data[:,:,1] = mtepData
-    data[:,:,2] = mtepData - vehData
+    data[:,:,0] = mtepData
+    data[:,:,1] = vehData
+    data[:,:,2] = diffData
     print(data[:,:,0])
 
     clim = np.zeros((2,3))

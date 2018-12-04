@@ -1,7 +1,6 @@
 radius = 3;
 threshold=0.01;
-useAbs = false;
-saveFileName = 'NodalConnectivity';
+saveFileName = 'NodalConnectivityZ';
 % saveFileName = 'NodalConnectivityDetailedMotor';
 
 %% get node locations
@@ -21,7 +20,7 @@ end
 seedCenter = nan(max(AtlasSeeds(:)),2);
 for seed = 1:max(AtlasSeeds(:))
     ind = find(AtlasSeeds == seed);
-    [row, col] = ind2D(ind,size(AtlasSeeds));
+    [row, col] = mouse.plot.ind2D(ind,size(AtlasSeeds));
     seedCenter(seed,1) = mean(col);
     seedCenter(seed,2) = mean(row);
 end
@@ -54,7 +53,7 @@ nodeIndOriginalSpace = cell(size(seedCenter,1),1);
 % get pixels surrounding seed
 for seed = 1:size(seedCenter,1)
 %     nodeIndOriginalSpace{seed} = find(AtlasSeeds == seed);
-    seed2DInd = circleCoor(seedCenter(seed,:),radius);
+    seed2DInd = mouse.plot.circleCoor(seedCenter(seed,:),radius);
     nodeIndOriginalSpace{seed} = seed2DInd(2,:) + (seed2DInd(1,:)-1)*size(AtlasSeeds,1);
 end
 
@@ -88,33 +87,29 @@ disp('load and get connectivity');
 disp('loading PT_Groups');
 load('D:\data\StrokeMTEP\PT_Groups_Tad_single.mat');
 
-% preprocess to R
-MTEP_PT = tanh(MTEP_PT);
-Veh_PT = tanh(Veh_PT);
+% % preprocess to R
+% MTEP_PT = tanh(MTEP_PT);
+% Veh_PT = tanh(Veh_PT);
 
-if useAbs
-MTEP_PT = abs(MTEP_PT);
-Veh_PT = abs(Veh_PT);
-end
 
 MTEP_PT_Nodal_R = nan(numel(nodeInd),numel(nodeInd),size(MTEP_PT,3));
 Veh_PT_Nodal_R = nan(numel(nodeInd),numel(nodeInd),size(Veh_PT,3));
 
 disp('  nodal connectivity calculation MTEP_PT');
 t0 = tic;
-for mouse = 1:size(MTEP_PT,3)
-    disp(['    mouse # ' num2str(mouse)]);
+for mouseInd = 1:size(MTEP_PT,3)
+    disp(['    mouse # ' num2str(mouseInd)]);
     t1 = tic;
-    MTEP_PT_Nodal_R(:,:,mouse) = nodalConnectivity(nodeInd,MTEP_PT(:,:,mouse));
+    MTEP_PT_Nodal_R(:,:,mouseInd) = mouse.graph.nodalConnectivity(nodeInd,MTEP_PT(:,:,mouseInd));
     disp(['    took ' num2str(toc(t1)) ' seconds.']);
 end
 disp(['  took ' num2str(toc(t0)) ' seconds.']);
 
 disp('  nodal connectivity calculation Veh_PT');
 t0 = tic;
-for mouse = 1:size(Veh_PT,3)
-    disp(['    mouse # ' num2str(mouse)]);
-    Veh_PT_Nodal_R(:,:,mouse) = nodalConnectivity(nodeInd,Veh_PT(:,:,mouse));
+for mouseInd = 1:size(Veh_PT,3)
+    disp(['    mouse # ' num2str(mouseInd)]);
+    Veh_PT_Nodal_R(:,:,mouseInd) = mouse.graph.nodalConnectivity(nodeInd,Veh_PT(:,:,mouseInd));
 end
 
 % diagonal is zero and things below threshold are zero.
@@ -140,31 +135,31 @@ disp('loading SHAM_Groups');
 
 load('D:\data\StrokeMTEP\SHAM_Groups_Tad_single.mat');
 
-% preprocess to R
-MTEP_Sham = tanh(MTEP_Sham);
-Veh_Sham = tanh(Veh_Sham);
-
-if useAbs
-MTEP_Sham = abs(MTEP_Sham);
-Veh_Sham = abs(Veh_Sham);
-end
+% % preprocess to R
+% MTEP_Sham = tanh(MTEP_Sham);
+% Veh_Sham = tanh(Veh_Sham);
+% 
+% if useAbs
+% MTEP_Sham = abs(MTEP_Sham);
+% Veh_Sham = abs(Veh_Sham);
+% end
 
 MTEP_Sham_Nodal_R = nan(numel(nodeInd),numel(nodeInd),size(MTEP_Sham,3));
 Veh_Sham_Nodal_R = nan(numel(nodeInd),numel(nodeInd),size(Veh_Sham,3));
 
 disp('  nodal connectivity calculation MTEP_Sham');
 t0 = tic;
-for mouse = 1:size(MTEP_Sham,3)
-    disp(['    mouse # ' num2str(mouse)]);
-    MTEP_Sham_Nodal_R(:,:,mouse) = nodalConnectivity(nodeInd,MTEP_Sham(:,:,mouse));
+for mouseInd = 1:size(MTEP_Sham,3)
+    disp(['    mouse # ' num2str(mouseInd)]);
+    MTEP_Sham_Nodal_R(:,:,mouseInd) = mouse.graph.nodalConnectivity(nodeInd,MTEP_Sham(:,:,mouseInd));
 end
 disp(['  took ' num2str(toc(t0)) ' seconds.']);
 
 disp('  nodal connectivity calculation Veh_Sham');
 t0 = tic;
-for mouse = 1:size(Veh_Sham,3)
-    disp(['    mouse # ' num2str(mouse)]);
-    Veh_Sham_Nodal_R(:,:,mouse) = nodalConnectivity(nodeInd,Veh_Sham(:,:,mouse));
+for mouseInd = 1:size(Veh_Sham,3)
+    disp(['    mouse # ' num2str(mouseInd)]);
+    Veh_Sham_Nodal_R(:,:,mouseInd) = mouse.graph.nodalConnectivity(nodeInd,Veh_Sham(:,:,mouseInd));
 end
 
 MTEP_Sham_Nodal_R_Graph = MTEP_Sham_Nodal_R;
@@ -188,35 +183,28 @@ clear MTEP_Sham Veh_Sham
 %% save
 
 disp('save');
-
-if useAbs
-    save(['D:\data\StrokeMTEP\' saveFileName 'Abs.mat'],'MTEP_PT_Nodal_R',...
-        'Veh_PT_Nodal_R','MTEP_Sham_Nodal_R','Veh_Sham_Nodal_R',...
-        'MTEP_PT_Nodal_R_Graph','Veh_PT_Nodal_R_Graph',...
-        'MTEP_Sham_Nodal_R_Graph','Veh_Sham_Nodal_R_Graph',...
-        'isbrain','seednames','nodeIndOriginalSpace','seedCenter');
-else
-    save(['D:\data\StrokeMTEP\' saveFileName '.mat'],'MTEP_PT_Nodal_R',...
-        'Veh_PT_Nodal_R','MTEP_Sham_Nodal_R','Veh_Sham_Nodal_R',...
-        'MTEP_PT_Nodal_R_Graph','Veh_PT_Nodal_R_Graph',...
-        'MTEP_Sham_Nodal_R_Graph','Veh_Sham_Nodal_R_Graph',...
-        'isbrain','seednames','nodeIndOriginalSpace','seedCenter');
-end
+%
+%     save(['D:\data\StrokeMTEP\' saveFileName 'Abs.mat'],'MTEP_PT_Nodal_R',...
+%         'Veh_PT_Nodal_R','MTEP_Sham_Nodal_R','Veh_Sham_Nodal_R',...
+%         'MTEP_PT_Nodal_R_Graph','Veh_PT_Nodal_R_Graph',...
+%         'MTEP_Sham_Nodal_R_Graph','Veh_Sham_Nodal_R_Graph',...
+%         'isbrain','seednames','nodeIndOriginalSpace','seedCenter');
+save(['D:\data\StrokeMTEP\' saveFileName '.mat'],'MTEP_PT_Nodal_R',...
+    'Veh_PT_Nodal_R','MTEP_Sham_Nodal_R','Veh_Sham_Nodal_R',...
+    'MTEP_PT_Nodal_R_Graph','Veh_PT_Nodal_R_Graph',...
+    'MTEP_Sham_Nodal_R_Graph','Veh_Sham_Nodal_R_Graph',...
+    'isbrain','seednames','nodeIndOriginalSpace','seedCenter');
 %% plot
 
-if useAbs
-    cMin = 0;
-    cMax = 1;
-else
-    cMin = -1;
-    cMax = 1;
-end
+cMin = -1;
+cMax = 1;
+
 
 % params
 xRotAngle = 90; % degrees
 % roiInd = [2:20 22:40];
-roiInd = [13:20 24:29 33:40];
-roiInd = [12:18 22:25 29:42];
+% roiInd = [13:20 24:29 33:40];
+% roiInd = [12:18 22:25 29:42];
 
 disp('plot');
 

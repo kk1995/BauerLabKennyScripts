@@ -106,12 +106,12 @@ ylim([0 max([actualVal; upperThr])+8]);
 
 % plot the actual PC variance
 line = plot(pcInd,actualVal,'o','Color', colorOrder(1,:),'MarkerFaceColor', colorOrder(1,:),'LineWidth',2);
-title(['Principal components significance (n = ' num2str(size(nullLat,2)) ')']);
+% title(['Principal components significance (n = ' num2str(size(nullLat,2)) ')']);
 set(gca,'XTick',1:numComponents);
 set(gca,'XTickLabel',1:numComponents);
 xlim([0.25 numComponents+0.5]);
 ylabel('Variance explained (%)');
-xlabel('PCs')
+xlabel('Principal component index')
 hold on;
 lowerBound = [0 0 0 0 0 0 0 0 0 0];
 for pc = 1:numel(upperThr)
@@ -120,7 +120,8 @@ for pc = 1:numel(upperThr)
     plot(x,y,'Color',colorOrder(1,:),'LineWidth',0.5);
 end
 
-lgd = legend([midLine line],'Null distribution (95th percentile)','Connectivity variance');
+lgd = legend([midLine line],'Null distribution (95th percentile)','Variance explained by MTEP');
+set(gca,'FontSize',12);
 set(lgd,'Position',[0.65 0.82 0.1 0.08]);
 
 shiftUp = 0.5.*log(actualVal).*ones(size(actualVal))+3;
@@ -128,10 +129,10 @@ textYLoc = actualVal;
 for pc = 1:10
     textYLoc(pc) = textYLoc(pc) + shiftUp(pc);
 end
-text(1,textYLoc(1), ['p=' strrep(num2str(pVal(1),'%.4f'),'0.','.')],...
-        'FontWeight','bold','HorizontalAlignment','center','Color','k','fontname','helvetica');
-for pc = 2:numel(pVal)
-%     text(pc,max([actualVal; upperThr])+3.5,num2str(pVal(pc),'%.3f'),'HorizontalAlignment','center','Color',colorOrder(1,:));
-    text(pc,textYLoc(pc), strrep(num2str(pVal(pc),'%.3f'),'0.','.'),...
-        'FontWeight','bold','HorizontalAlignment','center','Color','k','fontname','helvetica');
-end
+text(0.5,textYLoc(1), ['p=' strrep(num2str(pVal(1),'%.4f'),'0.','.')],...
+        'FontWeight','bold','FontSize',16,'HorizontalAlignment','left','Color','k','fontname','helvetica');
+% for pc = 2:numel(pVal)
+% %     text(pc,max([actualVal; upperThr])+3.5,num2str(pVal(pc),'%.3f'),'HorizontalAlignment','center','Color',colorOrder(1,:));
+%     text(pc,textYLoc(pc), strrep(num2str(pVal(pc),'%.3f'),'0.','.'),...
+%         'FontWeight','bold','HorizontalAlignment','center','Color','k','fontname','helvetica');
+% end
