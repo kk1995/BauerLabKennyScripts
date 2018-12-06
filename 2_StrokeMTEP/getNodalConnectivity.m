@@ -1,53 +1,37 @@
 radius = 3;
 threshold=0.01;
-saveFileName = 'NodalConnectivityZ';
+saveFileName = 'NodalConnectivityZDetailedMotor';
 % saveFileName = 'NodalConnectivityDetailedMotor';
 
 %% get node locations
 
 % get seed locations
 load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
-seednames{4} = 'M2'; % M2 and M1 flipped in loaded data
-seednames{5} = 'M1';
-seednames = repmat(seednames,1,2); % for both left and right
-for seed = 1:20
-    seednames{seed} = [seednames{seed} 'L'];
-end
-for seed = 21:40
-    seednames{seed} = [seednames{seed} 'R'];
-end
+seednamesOld = seednames;
+seednamesOld{4} = 'M2'; % M2 and M1 flipped in loaded data
+seednamesOld{5} = 'M1';
 
-seedCenter = nan(max(AtlasSeeds(:)),2);
+seedCenterOld = nan(max(AtlasSeeds(:)),2);
 for seed = 1:max(AtlasSeeds(:))
     ind = find(AtlasSeeds == seed);
     [row, col] = mouse.plot.ind2D(ind,size(AtlasSeeds));
-    seedCenter(seed,1) = mean(col);
-    seedCenter(seed,2) = mean(row);
+    seedCenterOld(seed,1) = mean(col);
+    seedCenterOld(seed,2) = mean(row);
 end
-seedCenter = round(seedCenter);
+seedCenterOld = round(seedCenterOld);
 
-% % add the other seeds
-% x = [1.3,1,1.8,1.8,1.25,0.6];
-% y = [0.25,-0.75,1.5,2.4,2,-0.15];
-% [pixX,pixY] = mm2pix(x,y);
-% seedCenter = [seedCenter; pixX' pixY'];
-% seednames{41} = 'M1 CFA';
-% seednames{42} = 'M1 HL';
-% seednames{43} = 'M1 Head';
-% seednames{44} = 'ALM';
-% seednames{45} = 'M2 RFA';
-% seednames{46} = 'M2p';
+% add the other seeds
+x = -1*[1.3,1,1.8,1.8,1.25,0.6];
+x2 = [1.3,1,1.8,1.8,1.25,0.6];
+y = [0.25,-0.75,1.5,2.4,2,-0.15];
+[pixX,pixY] = mouse.expSpecific.mm2pix(x,y);
+[pixX2,pixY2] = mouse.expSpecific.mm2pix(x2,y);
 
-% remove M1 and M2
-removeInd = false(numel(seednames),1);
-% for i = 1:40
-%     if contains(seednames{i},'M1') || contains(seednames{i},'M2')
-%         removeInd(i) = true;
-%     end
-% end
-
-seednames = seednames(~removeInd);
-seedCenter = seedCenter(~removeInd,:);
+seedCenter = [seedCenterOld(1:3,:); pixX' pixY'; seedCenterOld(6:20,:);...
+    seedCenterOld(21:23,:); pixX2' pixY2'; seedCenterOld(26:40,:)];
+seednames = [seednamesOld(1:3) {'M1 CFA'} {'M1 HL'} {'M1 Head'} {'ALM'} ...
+    {'M2 RFA'} {'M2p'} seednamesOld(6:20)];
+seednames = repmat(seednames,1,2); % for both left and right
 
 nodeIndOriginalSpace = cell(size(seedCenter,1),1);
 % get pixels surrounding seed

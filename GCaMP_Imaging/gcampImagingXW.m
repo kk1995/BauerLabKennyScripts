@@ -54,7 +54,8 @@ for run = 1:3
     
     %% filter
     
-    % none for now
+    xform_hb = lowpass(xform_hb,0.5,sessionInfo.framerate);
+    % to get rid of higher frequency nonneuronal factors
     
     %% get block avg
     

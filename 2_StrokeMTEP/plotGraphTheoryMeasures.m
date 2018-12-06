@@ -1,9 +1,9 @@
 close all;
 
-load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
-% load('D:\data\StrokeMTEP\NodalConnectivityDetailedMotor.mat');
-
 load('D:\data\atlas.mat');
+
+% load('D:\data\StrokeMTEP\NodalConnectivityZDetailedMotor.mat');
+load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
 
 xRotAngle = 90;
 
@@ -11,12 +11,8 @@ corrMapAll = [];
 D_weiAll = [];
 iterNum = 100;
 
-% roiInd = [4:11 13:15 24:31 33:35]; % regions I am interested in showing
-% roiInd = [2:20 22:40];
-roiInd = [13:20 24:29 33:40];
-% roiInd = [12:18 22:25 29:42];
-% roiInd = [12:16 22:25 29:34 37:42];
-% roiInd = [2:18 20:42];
+roiInd = [2:20 22:40];
+% roiInd = [2:24 26:48];
 
 data1 = Veh_PT_Nodal_R_Graph;
 data2 = MTEP_PT_Nodal_R_Graph;
@@ -320,7 +316,7 @@ plot(pvalLog,'o-',...
 plot(repmat(pthrLog,size(pvalLog)),...
                 'LineWidth',2,...
                 'Color',[193 2 2]/255);
-reject = holmBonf(pval);
+reject = mouse.stat.holmBonf(pval);
 for i = 1:numel(roiInd)
     if reject(i)
         text(i,-0.5,'*','FontSize',14);
@@ -344,7 +340,7 @@ for i = 1:numel(roiInd)
     postStroke = output2.local.clusterCoefficient(i,:);
     [~,pval(i)] = ttest2(preStroke,postStroke);
 end
-reject = holmBonf(pval);
+reject = mouse.stat.holmBonf(pval);
 pvalLog = log(pval)/log(10);
 pthrLog = log(0.05)/log(10);
 plot(pvalLog,'o-',...
@@ -377,7 +373,7 @@ for i = 1:numel(roiInd)
     postStroke = output2.local.strength(i,:);
     [~,pval(i)] = ttest2(preStroke,postStroke);
 end
-reject = holmBonf(pval);
+reject = mouse.stat.holmBonf(pval);
 pvalLog = log(pval)/log(10);
 pthrLog = log(0.05)/log(10);
 plot(pvalLog,'o-',...
@@ -422,7 +418,7 @@ hold on;
 plot(repmat(pthrLog,size(pvalLog)),...
                 'LineWidth',2,...
                 'Color',[193 2 2]/255);
-reject = holmBonf(pval);
+reject = mouse.stat.holmBonf(pval);
 for i = 1:numel(roiInd)
     if reject(i)
         text(i,-0.5,'*','FontSize',14);

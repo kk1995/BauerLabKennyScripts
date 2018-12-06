@@ -1,7 +1,8 @@
 % close all;
 
-load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
-load('D:\data\atlas.mat');
+load('D:\data\StrokeMTEP\NodalConnectivityZDetailedMotor.mat');
+% load('D:\data\StrokeMTEP\NodalConnectivityZ.mat');
+
 seedCenterTotal = seedCenter;
 % calculate coordinate of seeds (not just center coordinate)
 seed2DCoor = mouse.plot.circleCoor(seedCenterTotal(1,:),3); % sees pixels needed for first seed
@@ -21,11 +22,14 @@ iterNum = 100;
 pcInd = 1; % principal component index
 clusterSizeThr = 200; % pixels
 seedOverlapThr = 0.5; % how much of the seed needs to be in PC region
+pcaPrc = 90;
+pcaThr = 0.5;
 
 % index order
-maskFile = 'D:\data\atlas.mat';
-load(maskFile,'mask','mask2','AtlasSeedsFilled','seednames'); % mask
-SeedsUsed=CalcRasterSeedsUsed(mask);
+pcaMaskFile = 'D:\data\atlas.mat';
+load(pcaMaskFile,'mask');
+pcaMask = mask;
+SeedsUsed=CalcRasterSeedsUsed(pcaMask);
 length=size(SeedsUsed,1);
 map=[(1:2:length-1) (2:2:length)];
 NewSeedsUsed(:,1)=SeedsUsed(map, 1);
@@ -45,7 +49,7 @@ pcaVal = nan(128,128);
 pcaVal(idx_inv) = z;
 
 % find clusters of high values
-threshold = prctile(abs(pcaVal(:)),95)*0.5;
+threshold = prctile(abs(pcaVal(:)),pcaPrc)*pcaThr;
 aboveThr = abs(pcaVal) >= threshold;
 
 % only select clusters that are big enough
@@ -70,8 +74,8 @@ for seedInd = 1:size(seedPix,2)
         roiInd = [roiInd seedInd];
     end
 end
-roiInd(roiInd==3) = [];
-roiInd(roiInd==23) = [];
+% roiInd(roiInd==3) = [];
+% roiInd(roiInd==23) = [];
 
 notRoiInd = 1:size(seedPix,2);
 notRoiInd(roiInd) = [];
@@ -145,11 +149,19 @@ for cond = 1:numel(data)
 end
 
 %% plot pca
+
+load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
+mask2 = symisbrainall;
+
+plotMask = pcaMask&mask2;
+
+seedCenterNotRoi = seedCenterNotRoi(plotMask(seedCenterNotRoi(:,2)+(seedCenterNotRoi(:,1)-1)*128),:);
+
 cLim = [0 1];
 cMap = gray(100);
 cMap2 = hsv(100);
 f0 = figure;
-ax = mouse.plot.plotBrain(f0,pcaVal,mask&mask2,[-0.01 0.01],'jet');
+ax = mouse.plot.plotBrain(f0,pcaVal,pcaMask&mask2,[-0.01 0.01],'jet');
 ax = mouse.plot.plotNodes(ax,seedCenterRoi,1,cLim,cMap,120,false);
 ax = mouse.plot.plotScatter(ax,seedCenterRoi,0,cLim,cMap,120,3);
 % ax = mouse.plot.plotNodes(ax,seedCenterNotRoi,0.2,cLim,cMap2,32,false);

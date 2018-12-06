@@ -6,7 +6,7 @@ maskFile = 'D:\data\atlas.mat';
 % load
 load(rawFile);
 load(pcaFile); % coeff, score
-load(maskFile,'mask','mask2','AtlasSeedsFilled','seednames'); % mask
+load(maskFile,'mask','AtlasSeedsFilled','seednames'); % mask
 
 %%
 % make sure the mask has all 40 regions
@@ -48,6 +48,9 @@ seedCenter = seedCenter(roiInd,:);
 cMap = jet(100);
 blueRedMap = mouse.plot.blueWhiteRed(100,[1 0],true);
 gMap = gray(100);
+
+load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
+mask2 = symisbrainall;
 
 f2 = figure('Position',[50 650 600 300]);
 p = panel();
