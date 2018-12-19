@@ -10,7 +10,7 @@ for run = 1:3
     
     %% state the tif file
     
-    tiffFileName = strcat("L:\GCaMP\181031-GCampM2-stim",num2str(run),".tif");
+    tiffFileName = strcat("L:\181126-166M3-stim",num2str(run),".tif");
     
     %% get system or session information.
     
@@ -25,20 +25,21 @@ for run = 1:3
     systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
     
     % sessionType = 'fc' or 'stim'
-    sessionInfo = mouse.expSpecific.session2procInfo('stim');
-    sessionInfo.framerate = 16.8;
+    sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
+    sessionInfo.framerate = 23.5294;
     sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
     sessionInfo.freqout = sessionInfo.framerate;
     
     %% get gcamp and hb data
+    darkFrameNum = 118;
     
     if exist('isbrain')
         % if brain mask and markers are available:
         [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-            = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrames',0);
+            = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
     else
         [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-            = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo,'darkFrames',0);
+            = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
     end
     % isbrain = logical nxn array of brain mask.
     % markers = the brain markers that are created during the whole GUI where
@@ -54,18 +55,18 @@ for run = 1:3
     
     %% filter
     
-    xform_hb = lowpass(xform_hb,0.5,sessionInfo.framerate);
+%     xform_hb = lowpass(xform_hb,0.5,sessionInfo.framerate);
     % to get rid of higher frequency nonneuronal factors
     
     %% get block avg
     
-    xform_hb = cat(4,zeros(size(xform_hb,1),size(xform_hb,2),size(xform_hb,3)),xform_hb);
-    xform_gcamp = cat(4,zeros(size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3)),xform_gcamp);
-    xform_gcampCorr = cat(4,zeros(size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3)),xform_gcampCorr);
+%     xform_hb = cat(4,zeros(size(xform_hb,1),size(xform_hb,2),size(xform_hb,3)),xform_hb);
+%     xform_gcamp = cat(4,zeros(size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3)),xform_gcamp);
+%     xform_gcampCorr = cat(4,zeros(size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3)),xform_gcampCorr);
     
-    xform_hbAvg = reshape(xform_hb,size(xform_hb,1),size(xform_hb,2),size(xform_hb,3),30*sessionInfo.framerate,[]);
-    xform_gcampAvg = reshape(xform_gcamp,size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3),30*sessionInfo.framerate,[]);
-    xform_gcampCorrAvg = reshape(xform_gcampCorr,size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3),30*sessionInfo.framerate,[]);
+    xform_hbAvg = reshape(xform_hb,size(xform_hb,1),size(xform_hb,2),size(xform_hb,3),707,[]);
+    xform_gcampAvg = reshape(xform_gcamp,size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3),707,[]);
+    xform_gcampCorrAvg = reshape(xform_gcampCorr,size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3),707,[]);
     
     xform_hbAvg = nanmean(xform_hbAvg,5);
     xform_gcampAvg = nanmean(xform_gcampAvg,5);
@@ -74,7 +75,7 @@ for run = 1:3
 %     xform_hbAvg = mouse.preprocess.blockAvg(xform_hb,time,30,30*sessionInfo.framerate);
 %     xform_gcampAvg = mouse.preprocess.blockAvg(xform_gcamp,time,30,30*sessionInfo.framerate);
 %     xform_gcampCorrAvg = mouse.preprocess.blockAvg(xform_gcampCorr,time,30,30*sessionInfo.framerate);
-    blockTime = linspace(0,30,30*sessionInfo.framerate+1); blockTime(end) = [];
+    blockTime = linspace(0,30,707+1); blockTime(end) = [];
     
     stimTime = (blockTime > 5 & blockTime <= 10);
     xform_hbStim = nanmean(xform_hbAvg(:,:,:,stimTime),4);

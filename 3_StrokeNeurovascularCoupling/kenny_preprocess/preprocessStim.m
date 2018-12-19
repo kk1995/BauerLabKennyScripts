@@ -1,6 +1,6 @@
 saveDir = "D:\data\zachRosenthal\preprocessed";
 systemInfo = mouse.expSpecific.sysInfo('fcOIS2');
-sessionInfo = mouse.expSpecific.session2procInfo('stim');
+sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
 sessionInfo.framerate = 16.8;
 sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
 sessionInfo.freqout = sessionInfo.framerate;
@@ -32,20 +32,21 @@ for mouseInd = 1:numel(mouseNames)
         darkFrameNum = 0*sessionInfo.framerate;
         if exist('isbrain')
             % if brain mask and markers are available:
-            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrame',darkFrame);
+            [raw, time, xform_datahb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrame',darkFrame);
         else
-            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = gcamp.gcampImaging(tiffFileName, systemInfo, sessionInfo,'darkFrame',darkFrame);
+            [raw, time, xform_datahb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrame',darkFrame);
         end
-        oxy = squeeze(xform_hb(:,:,1,:)); deoxy = squeeze(xform_hb(:,:,2,:));
+        oxy = squeeze(xform_datahb(:,:,1,:)); deoxy = squeeze(xform_datahb(:,:,2,:));
         gcamp6 = squeeze(xform_gcamp);
         gcamp6corr = squeeze(xform_gcampCorr);
-        xform_mask = mask;
+        xform_mask = xform_isbrain;
+        info = sessionInfo;
         
         % save
         saveFile = fullfile(saveDir,strcat(recDates(mouseInd),"-",...
             mouseNames(mouseInd),"-stim",num2str(run),".mat"));
-        save(saveFile,'oxy','deoxy','gcamp6','gcamp6corr','-v7.3');
+        save(saveFile,'oxy','deoxy','gcamp6','gcamp6corr','xform_mask','info','-v7.3');
     end
 end

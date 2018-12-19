@@ -1,18 +1,8 @@
-% this script is a wrapper around gcampImaging.m function that shows how
-% the function should be used. As shown, you state which tiff file to run,
-% then get system and session information either via the functions
-% sysInfo.m and session2procInfo.m or manual addition. Run the
-% gcampImaging.m function afterwards and you are good to go!
+%% state the mat file
 
-saveFileName = "181204-ProbeW9M1_preprocessed.mat";
-saveDir = "D:\data\wildType";
+dataFileName = "D:\data\temp\probeData.mat";
 
-%% state the tiff file
-
-% tiffFileName = "L:\181121\181121-ProbeW7M1-Post.tif";
-% tiffFileName = "J:\180813\180813-ProbeW3M1-Post.tif";
-% tiffFileName = "\\10.39.168.176\RawData_East3410\181129\181129-ProbeW9M3-PostXiaodan.tif";
-tiffFileName = "\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif";
+load(dataFileName);
 
 %% get system or session information.
 
@@ -24,24 +14,20 @@ tiffFileName = "\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.ti
 % for sessionInfo, you need framerate, freqout, lowpass, and highpass
 
 % systemType = 'fcOIS1', 'fcOIS2', 'fcOIS2_Fluor' or 'EastOIS1_Fluor'
-systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
-
-% sessionType = 'fc' or 'stim'
-sessionInfo = mouse.expSpecific.sesInfo('none');
-% sessionInfo.framerate = 23.5294;
-sessionInfo.framerate = 16.8;
-sessionInfo.freqout = sessionInfo.framerate;
-sessionInfo.lowpass = sessionInfo.framerate/2 - 0.1;
+systemInfo = mouse.expSpecific.sysInfo('fcOIS2');
+sessionInfo = mouse.expSpecific.sesInfo('6-nbdg');
+sessionInfo.framerate = 4;
+sessionInfo.freqout = 4;
 
 %% get gcamp and hb data
-darkFrameNum = 5*10;
+darkFrameNum = 0;
 
 if exist('isbrain')
     [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
-        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
+        = probe.probeImagingRaw(raw, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
 else
     [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
-        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
+        = probe.probeImagingRaw(raw, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
 end
 
 % % if brain mask and markers are available:
@@ -53,10 +39,6 @@ end
 % you click on the midline suture and lambda. If you do not have these,
 % just run the code without giving these inputs, go through the GUI, then
 % the code will output isbrain, xform_isbrain, and markers.
-
-%% save
-
-save(fullfile(saveDir,saveFileName),'sessionInfo','xform_hb','xform_probe','xform_probeCorr','isbrain','xform_isbrain','markers','-v7.3');
 
 %% gsr
 
@@ -96,7 +78,7 @@ xform_probeCorrStim = nanmean(xform_probeCorrBlock(:,:,:,stimTime),4);
 plotData = cat(3,1000*xform_hbStim,xform_probeStim,xform_probeCorrStim);
 % cLim = [-0.002 0.002; -0.002 0.002; -0.002 0.002; -0.005 0.005];
 % cLim = [-0.02 0.02; -0.02 0.02; -0.01 0.01; -0.07 0.07];
-cLim = [-0.005 0.005; -0.005 0.005; -0.01 0.01; -0.02 0.02];
+cLim = [-0.005 0.005; -0.005 0.005; -0.01 0.01; -0.03 0.03];
 
 titleStr = ["HbO","HbR","fluor","corrected"];
 figure;

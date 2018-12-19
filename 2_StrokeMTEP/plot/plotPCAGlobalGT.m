@@ -169,6 +169,10 @@ ax = mouse.plot.plotScatter(ax,seedCenterNotRoi,0,cLim,cMap,32,1.5);
 % ax = mouse.plot.plotScatter(ax,seedCenterNotRoi,0,cLim,cMap,96,1,'x');
 
 %% global plot
+figure('Position',[20 100 numel(data)*250 400]);
+p = panel();
+p.pack('h',{0.33 0.33 0.33 []});
+p.margin = [10 11 0 5];
 
 % pairs to statistically compare
 pairs = nchoosek(1 : numel(data), 2);
@@ -177,8 +181,7 @@ if numel(data) == 4 % do not compare data 2 and 3
 end
 
 % figure('Position',[20 100 1900 450]);
-figure('Position',[20 100 numel(data)*250 300]);
-s1 = subplot(1,3,1);
+s1 = p(1).select();
 test = [];
 boxInd = [];
 for cond = 1:numel(data)
@@ -224,7 +227,7 @@ if numel(data) == 2
     text(0.5,0.05,['p = ' num2str(pVal,'%.2g')],'HorizontalAlignment','center','Units','normalized');
 end
 
-s2 = subplot(1,3,2);
+s2 = p(2).select();
 test = [];
 boxInd = [];
 for cond = 1:numel(data)
@@ -271,7 +274,7 @@ if numel(data) == 2
 end
 
 
-s3 = subplot(1,3,3);
+s3 = p(3).select();
 test = [];
 boxInd = [];
 for cond = 1:numel(data)

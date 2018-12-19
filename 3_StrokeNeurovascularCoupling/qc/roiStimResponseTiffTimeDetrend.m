@@ -6,11 +6,12 @@ roiFile = 'D:\data\zachRosenthal\_stim\ROI R 75.mat';
 roiData = load(roiFile);
 roi = roiData.roiR75;
 
-saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseBothDetrend.mat';
+% saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseBothDetrend.mat';
+saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseTimeDetrend.mat';
 
 systemInfo = mouse.expSpecific.sysInfo('fcOIS2');
 sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
-% sessionInfo.detrendSpatially = false;
+sessionInfo.detrendSpatially = false;
 sessionInfo.framerate = 16.8;
 sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
 sessionInfo.freqout = sessionInfo.framerate;

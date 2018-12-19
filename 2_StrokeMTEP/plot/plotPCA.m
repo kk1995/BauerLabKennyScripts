@@ -1,12 +1,12 @@
 % param
 rawFile = 'D:\data\StrokeMTEP\PT_Groups_avg_reorganized.mat';
-pcaFile = 'D:\data\StrokeMTEP\PT_Groups_PCA.mat';
+pcaFile = 'D:\data\StrokeMTEP\MTEP_PT-Veh_Sham_PCA.mat';
 maskFile = 'D:\data\atlas.mat';
 
 % load
 load(rawFile);
 load(pcaFile); % coeff, score
-load(maskFile,'mask','AtlasSeedsFilled','seednames'); % mask
+load(maskFile,'mask','mask2','AtlasSeedsFilled','seednames'); % mask
 
 %%
 % make sure the mask has all 40 regions
@@ -19,8 +19,9 @@ for x = 65:128
 end
 
 % remap spatial ind
-SeedsUsed=CalcRasterSeedsUsed(mask);
-idx=find(mask==1);
+newMask = mask;
+SeedsUsed=CalcRasterSeedsUsed(newMask);
+idx=find(newMask==1);
 length=size(SeedsUsed,1);
 map=[(1:2:length-1) (2:2:length)];
 NewSeedsUsed(:,1)=SeedsUsed(map, 1);
@@ -52,6 +53,10 @@ gMap = gray(100);
 load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
 mask2 = symisbrainall;
 
+n = 1;
+% z = mean(score(:,n)*coeff(:,n)',2);
+z = score(:,n).*coeff(:,n);
+cLim = [-0.3 0.3];
 f2 = figure('Position',[50 650 600 300]);
 p = panel();
 p.pack('h', {0.80 []});
@@ -59,13 +64,10 @@ p.margin = [0 0 0 0];
 ax = p(1).select();
 axis(ax,'square');
 set(ax,'Visible','off');
-n = 1;
 addColorBar = true;
 pcaVal = nan(128,128);
-z = scoreWithMean(:,n)*coeff(:,n)';
-pcaVal(idx_inv) = mean(z,2);
-ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar);
-title(num2str(var(n)));
+pcaVal(idx_inv) = z;
+ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,cLim,cMap,addColorBar);
 
 f3 = figure('Position',[50 650 600 300]);
 p = panel();
@@ -104,9 +106,9 @@ for n = 1:3
         addColorBar = true;
     end
     pcaVal = nan(128,128);
-    z = scoreWithMean(:,n)*coeff(:,n)';
+    z = score(:,n)*coeff(:,n)';
     pcaVal(idx_inv) = mean(z,2);
-    ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.01 0.01],cMap,addColorBar,0.01);
+    ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.02 0.02],cMap,addColorBar,0.01);
     % s = plotNodes(s,seedCenter,seedVal,[0 1],blueRedMap,160,false);
     %     s = plotScatter(s,seedCenter,seedVal,[0 1],gMap,160,2);
     ax = mouse.plot.plotCluster(ax,infarctROI,color,alpha);

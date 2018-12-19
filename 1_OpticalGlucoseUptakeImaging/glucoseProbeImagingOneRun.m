@@ -4,15 +4,17 @@
 % sysInfo.m and session2procInfo.m or manual addition. Run the
 % gcampImaging.m function afterwards and you are good to go!
 
-saveFileName = "181204-ProbeW9M1_preprocessed.mat";
+saveFileName = "181204-ProbeW9M1-Post_preprocessed.mat";
+% saveDir = "D:\data\6-nbdg";
 saveDir = "D:\data\wildType";
-
 %% state the tiff file
 
-% tiffFileName = "L:\181121\181121-ProbeW7M1-Post.tif";
-% tiffFileName = "J:\180813\180813-ProbeW3M1-Post.tif";
-% tiffFileName = "\\10.39.168.176\RawData_East3410\181129\181129-ProbeW9M3-PostXiaodan.tif";
-tiffFileName = "\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif";
+tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif"];
+
+% tiffFileName = ["J:\180713\180713-NewProbeM4W5Post.tif" ...
+%     "J:\180713\180713-NewProbeM4W5Post_X2.tif" ...
+%     "J:\180713\180713-NewProbeM4W5Post_X3.tif" ...
+%     "J:\180713\180713-NewProbeM4W5Post_X4.tif"];
 
 %% get system or session information.
 
@@ -29,8 +31,8 @@ systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
 % sessionType = 'fc' or 'stim'
 sessionInfo = mouse.expSpecific.sesInfo('none');
 % sessionInfo.framerate = 23.5294;
-sessionInfo.framerate = 16.8;
-sessionInfo.freqout = sessionInfo.framerate;
+sessionInfo.framerate = 5;
+sessionInfo.freqout = 5;
 sessionInfo.lowpass = sessionInfo.framerate/2 - 0.1;
 
 %% get gcamp and hb data
@@ -56,7 +58,7 @@ end
 
 %% save
 
-save(fullfile(saveDir,saveFileName),'sessionInfo','xform_hb','xform_probe','xform_probeCorr','isbrain','xform_isbrain','markers','-v7.3');
+save(fullfile(saveDir,saveFileName),'sessionInfo','xform_hb','xform_probe','time','xform_probeCorr','isbrain','xform_isbrain','markers','-v7.3');
 
 %% gsr
 
@@ -81,10 +83,10 @@ end
 
 %% get block avg
 
-xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,60,60*4);
-xform_probeBlock = mouse.preprocess.blockAvg(xform_probe,time,60,60*4);
-xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_probeCorr,time,60,60*4);
-blockTime = linspace(0,60,60*4+1); blockTime(end) = [];
+xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,60,60*5);
+xform_probeBlock = mouse.preprocess.blockAvg(xform_probe,time,60,60*5);
+xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_probeCorr,time,60,60*5);
+blockTime = linspace(0,60,60*5+1); blockTime(end) = [];
 
 %% plot block avg
 
@@ -96,7 +98,7 @@ xform_probeCorrStim = nanmean(xform_probeCorrBlock(:,:,:,stimTime),4);
 plotData = cat(3,1000*xform_hbStim,xform_probeStim,xform_probeCorrStim);
 % cLim = [-0.002 0.002; -0.002 0.002; -0.002 0.002; -0.005 0.005];
 % cLim = [-0.02 0.02; -0.02 0.02; -0.01 0.01; -0.07 0.07];
-cLim = [-0.005 0.005; -0.005 0.005; -0.01 0.01; -0.02 0.02];
+cLim = [-0.005 0.005; -0.005 0.005; -0.01 0.01; -0.03 0.03];
 
 titleStr = ["HbO","HbR","fluor","corrected"];
 figure;
@@ -136,9 +138,6 @@ end
 maxClusterSize = max(clusterSizes);
 roi = false(size(roiCandidates));
 roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
-
-figure;
-imagesc(roi); axis(gca,'square');
 
 %% plot roi avg
 
@@ -218,3 +217,4 @@ plot(blockTime,1000*(xform_hbRoiBlock(1,:)+xform_hbRoiBlock(2,:)),'k');
 plot(blockTime,xform_probeRoiBlock,'g');
 plot(blockTime,xform_probeCorrRoiBlock,'m');
 legend('HbO (mM)','HbR (mM)','HbT (mM)','fluor','fluor corrected');
+ylim([-0.01 0.02]);
