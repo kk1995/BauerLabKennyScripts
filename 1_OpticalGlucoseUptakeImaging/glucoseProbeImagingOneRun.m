@@ -4,17 +4,19 @@
 % sysInfo.m and session2procInfo.m or manual addition. Run the
 % gcampImaging.m function afterwards and you are good to go!
 
-saveFileName = "181204-ProbeW9M1-Post_preprocessed.mat";
-% saveDir = "D:\data\6-nbdg";
-saveDir = "D:\data\wildType";
+% saveFileName = "181204-ProbeW9M1-Post_preprocessed.mat";
+saveFileName = "180713-NewProbeM3W5-Post_preprocessed.mat";
+
+saveDir = "D:\data\6-nbdg";
+% saveDir = "D:\data\wildType";
 %% state the tiff file
 
-tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif"];
+% tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif"];
 
-% tiffFileName = ["J:\180713\180713-NewProbeM4W5Post.tif" ...
-%     "J:\180713\180713-NewProbeM4W5Post_X2.tif" ...
-%     "J:\180713\180713-NewProbeM4W5Post_X3.tif" ...
-%     "J:\180713\180713-NewProbeM4W5Post_X4.tif"];
+tiffFileName = ["J:\180713\180713-NewProbeM3W5Post.tif" ...
+    "J:\180713\180713-NewProbeM3W5Post_X2.tif" ...
+    "J:\180713\180713-NewProbeM3W5Post_X3.tif" ...
+    "J:\180713\180713-NewProbeM3W5Post_X4.tif"];
 
 %% get system or session information.
 
@@ -26,17 +28,17 @@ tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.t
 % for sessionInfo, you need framerate, freqout, lowpass, and highpass
 
 % systemType = 'fcOIS1', 'fcOIS2', 'fcOIS2_Fluor' or 'EastOIS1_Fluor'
-systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
+systemInfo = mouse.expSpecific.sysInfo('fcOIS2_Fluor');
 
 % sessionType = 'fc' or 'stim'
-sessionInfo = mouse.expSpecific.sesInfo('none');
-% sessionInfo.framerate = 23.5294;
-sessionInfo.framerate = 5;
-sessionInfo.freqout = 5;
+sessionInfo = mouse.expSpecific.sesInfo('6-nbdg');
+sessionInfo.framerate = 16.8;
+% sessionInfo.framerate = 16.8;
+sessionInfo.freqout = 4;
 sessionInfo.lowpass = sessionInfo.framerate/2 - 0.1;
 
 %% get gcamp and hb data
-darkFrameNum = 5*10;
+darkFrameNum = 0;
 
 if exist('isbrain')
     [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
@@ -83,10 +85,10 @@ end
 
 %% get block avg
 
-xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,60,60*5);
-xform_probeBlock = mouse.preprocess.blockAvg(xform_probe,time,60,60*5);
-xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_probeCorr,time,60,60*5);
-blockTime = linspace(0,60,60*5+1); blockTime(end) = [];
+xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,60,60*4);
+xform_probeBlock = mouse.preprocess.blockAvg(xform_probe,time,60,60*4);
+xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_probeCorr,time,60,60*4);
+blockTime = linspace(0,60,60*4+1); blockTime(end) = [];
 
 %% plot block avg
 
@@ -163,7 +165,7 @@ s2 = subplot(2,1,2);
 hold on; plot(time,xform_probeRoi,'g');
 hold on; plot(time,xform_probeCorrRoi,'m');
 hold off;
-legend('probe','probe corrected');
+legend('fluor','fluor corrected');
 
 figure;
 s3 = subplot(2,1,1);
@@ -175,7 +177,7 @@ s4 = subplot(2,1,2);
 hold on; plot(time,xform_probeNotRoi,'g');
 hold on; plot(time,xform_probeCorrNotRoi,'m');
 hold off;
-legend('probe','probe corrected');
+legend('fluor','fluor corrected');
 
 yLimHb1 = ylim(s1);
 yLimHb2 = ylim(s3);

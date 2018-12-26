@@ -19,15 +19,23 @@ yLim = [-0.04 0.04];
 yLim = [-0.04 0.04]./1000;
 
 systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
-sessionInfo = mouse.expSpecific.sesInfo('6-nbdg');
+sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
 sessionInfo.framerate = sR;
 sessionInfo.lowpass = sR./2-0.1;
 sessionInfo.freqout = sR;
 
 darkFrameNum = 118;
 
-[raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-    = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
+if exist('isbrain')
+    % if brain mask and markers are available:
+    [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
+else
+    [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
+end
+
+dataHb = xform_hb;
 
 %% block avg
 

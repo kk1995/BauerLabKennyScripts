@@ -5,12 +5,15 @@
 % gcampImaging.m function afterwards and you are good to go!
 
 dataAvg = [];
+stimResponse = [];
 
 for run = 1:3
+    disp(num2str(run));
     
     %% state the tif file
     
     tiffFileName = strcat("L:\181126-166M3-stim",num2str(run),".tif");
+    saveFileName = strcat("L:\181126-166M3-stim",num2str(run),"-processed.mat");
     
     %% get system or session information.
     
@@ -33,20 +36,26 @@ for run = 1:3
     %% get gcamp and hb data
     darkFrameNum = 118;
     
-    if exist('isbrain')
-        % if brain mask and markers are available:
-        [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-            = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
+    if exist(saveFileName)
+        load(saveFileName);
     else
-        [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-            = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
+        
+        if exist('isbrain')
+            % if brain mask and markers are available:
+            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
+        else
+            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
+                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
+        end
+        % isbrain = logical nxn array of brain mask.
+        % markers = the brain markers that are created during the whole GUI where
+        % you click on the midline suture and lambda. If you do not have these,
+        % just run the code without giving these inputs, go through the GUI, then
+        % the code will output isbrain, xform_isbrain, and markers.
+        
+        save(saveFileName,'xform_hb','xform_gcamp','xform_gcampCorr','isbrain','xform_isbrain','markers','-v7.3');
     end
-    % isbrain = logical nxn array of brain mask.
-    % markers = the brain markers that are created during the whole GUI where
-    % you click on the midline suture and lambda. If you do not have these,
-    % just run the code without giving these inputs, go through the GUI, then
-    % the code will output isbrain, xform_isbrain, and markers.
-    
     %% gsr
     
     xform_hb = mouse.preprocess.gsr(xform_hb,xform_isbrain);
@@ -81,26 +90,29 @@ for run = 1:3
     xform_hbStim = nanmean(xform_hbAvg(:,:,:,stimTime),4);
     xform_gcampStim = nanmean(xform_gcampAvg(:,:,:,stimTime),4);
     xform_gcampCorrStim = nanmean(xform_gcampCorrAvg(:,:,:,stimTime),4);
+    stimResponseRun = cat(3,xform_hbStim,xform_gcampStim,xform_gcampCorrStim);
     
     %% get fluor roi response
     temp = xform_hbStim(:,:,1);
     temp([1:40 100:128],:) = [];
     temp(:,53:128) = [];
     threshold = 0.75*prctile(temp(:),95);
-    roiCandidates = xform_hbStim(:,:,1) >= threshold;
-    % roiCandidates(abs(xform_probeCorrStim) > 0.02) = false;
-    roiCandidates([1:40 100:128],:) = false;
-    roiCandidates(:,53:128) = false;
+%     roiCandidates = xform_hbStim(:,:,1) >= threshold;
+%     % roiCandidates(abs(xform_probeCorrStim) > 0.02) = false;
+%     roiCandidates([1:40 100:128],:) = false;
+%     roiCandidates(:,53:128) = false;
+%     
+%     % choose largest cluster
+%     clusters = bwconncomp(roiCandidates,4);
+%     clusterSizes = nan(clusters.NumObjects,1);
+%     for clusterInd = 1:clusters.NumObjects
+%         clusterSizes(clusterInd) = numel(clusters.PixelIdxList{clusterInd});
+%     end
+%     maxClusterSize = max(clusterSizes);
+%     roi = false(size(roiCandidates));
+%     roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
     
-    % choose largest cluster
-    clusters = bwconncomp(roiCandidates,4);
-    clusterSizes = nan(clusters.NumObjects,1);
-    for clusterInd = 1:clusters.NumObjects
-        clusterSizes(clusterInd) = numel(clusters.PixelIdxList{clusterInd});
-    end
-    maxClusterSize = max(clusterSizes);
-    roi = false(size(roiCandidates));
-    roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
+    load('roi.mat');
     
     xform_hbRoiAvgRun = reshape(xform_hbAvg,size(xform_hbAvg,1)*size(xform_hbAvg,2),size(xform_hbAvg,3),[]);
     xform_gcampRoiAvgRun = reshape(xform_gcampAvg,size(xform_gcampAvg,1)*size(xform_gcampAvg,2),size(xform_gcampAvg,3),[]);
@@ -120,20 +132,48 @@ for run = 1:3
     
     dataAvgRun = cat(1,xform_hbRoiAvgRun,xform_gcampRoiAvgRun,xform_gcampCorrRoiAvgRun);
     dataAvg = cat(3,dataAvg,dataAvgRun);
-end
+    stimResponse = cat(4,stimResponse,stimResponseRun);
+end 
 
-plotData = nanmean(dataAvg,3);
 
 %% plot fluor roi response
+plotData = nanmean(dataAvg,3);
 
 figure;
-p1 = plot(blockTime,1000*plotData(1,:),'r'); hold on;
-p2 = plot(blockTime,1000*plotData(2,:),'b');
-p3 = plot(blockTime,plotData(3,:),'g');
-p4 = plot(blockTime,plotData(4,:),'k');
+p1 = plot(blockTime,plotData(1,:),'r'); hold on;
+p2 = plot(blockTime,plotData(2,:),'b');
+p3 = plot(blockTime,sum(plotData(1:2,:),1),'k');
 yLim = ylim(gca);
 stimT = 5:1/3:10; stimT(end) = [];
 for t = stimT
     plot([t t],yLim,'m');
 end
-legend([p1 p2 p3 p4],["HbO","HbR","fluor","corrected"]);
+legend([p1 p2 p3],["HbO","HbR","HbT"]);
+
+figure;
+p1 = plot(blockTime,plotData(3,:),'g'); hold on;
+p2 = plot(blockTime,plotData(4,:),'k');
+yLim = ylim(gca);
+stimT = 5:1/3:10; stimT(end) = [];
+for t = stimT
+    plot([t t],yLim,'m');
+end
+legend([p1 p2],["fluor uncorrected","fluor corrected"]);
+
+%% plot stim response
+
+plotData = nanmean(stimResponse,4);
+
+speciesInd = {[1],[2],[1,2],[4]};
+titleArray = ["HbO","HbR","HbT","fluor corrected"];
+% cLim = [-0.5 0.5; -0.5 0.5; -0.5 0.5; -3E3 3E3]./1E6;
+% cLim = [-5 5; -5 5; -5 5; -2E4 2E4]./1E6;
+cLim = [-0.5 0.5; -0.5 0.5; -0.5 0.5; -5E3 5E3]./1E6;
+figure;
+for i = 1:4
+    subplot(2,2,i);
+    imagesc(sum(plotData(:,:,speciesInd{i}),3),'AlphaData',xform_isbrain>0,cLim(i,:));
+    colormap('jet'); axis(gca,'square'); xticklabels([]); yticklabels([]);
+    colorbar;
+    title(titleArray(i));
+end

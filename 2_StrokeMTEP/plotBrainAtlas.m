@@ -9,7 +9,7 @@ seednames = repmat(seednames,1,2); % for both left and right
 seedCenter = nan(max(AtlasSeeds(:)),2);
 for seed = 1:max(AtlasSeeds(:))
     ind = find(AtlasSeeds == seed);
-    [row, col] = ind2D(ind,size(AtlasSeeds));
+    [row, col] = mouse.plot.ind2D(ind,size(AtlasSeeds));
     seedCenter(seed,1) = mean(col);
     seedCenter(seed,2) = mean(row);
 end

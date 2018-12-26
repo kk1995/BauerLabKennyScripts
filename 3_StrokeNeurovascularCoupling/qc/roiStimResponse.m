@@ -17,6 +17,7 @@ for row = rows
 end
 
 roiResponse = [];
+stimResponse = [];
 
 for mouseInd = 1:numel(mouseNames)
     disp(['mouse # ' num2str(mouseInd)]);
@@ -35,12 +36,18 @@ for mouseInd = 1:numel(mouseNames)
         
         blockData = reshape(runData,128,128,4,sR*blockLen,[]);
         blockData = nanmean(blockData,5);
+        blockTime = 1:sR*blockLen; blockTime = blockTime./16.8;
+
+        stimTimeInd = blockTime > 5 & blockTime < 10;
+        stimResponseRun = nanmean(blockData(:,:,:,stimTimeInd),4);
+        
         roiResponseRun = reshape(blockData,128*128,4,[]);
         roiResponseRun = roiResponseRun(roi,:,:);
         roiResponseRun = squeeze(nanmean(roiResponseRun,1));
         
         % save to larger matrix
         roiResponse = cat(3,roiResponse, roiResponseRun);
+        stimResponse = cat(4,stimResponse,stimResponseRun);
     end
     
 %     rowNum = size(roiResponse,3);
@@ -55,7 +62,6 @@ save('D:\data\zachRosenthal\_stim\roiRResponseMouse1.mat','roiResponse');
 %% plot
 
 plotData = nanmean(roiResponse,3);
-blockTime = 1:sR*blockLen; blockTime = blockTime./16.8;
 plot(blockTime,plotData(1,:),'r');
 hold on;
 plot(blockTime,plotData(2,:),'b');
@@ -63,3 +69,20 @@ plot(blockTime,plotData(3,:),'g');
 plot(blockTime,plotData(4,:),'k');
 
 legend('hbo','hbr','g6','g6corrected')
+
+%%
+plotData = nanmean(stimResponse,4);
+plotData(:,:,1:2) = plotData(:,:,1:2);
+plotData(:,:,3) = sum(plotData(:,:,1:2),3);
+figure;
+subTitles = ["HbO","HbR","HbT","gcamp corr"];
+cLim = [-5E-4 5E-4; -5E-4 5E-4; -5E-4 5E-4; -2E-3 2E-3];
+for i = 1:4
+subplot(2,2,i);
+imagesc(plotData(:,:,i),cLim(i,:));
+colormap('jet');
+colorbar;
+axis(gca,'square'); yticklabels([]); xticklabels([]);
+title(subTitles(i));
+end
+

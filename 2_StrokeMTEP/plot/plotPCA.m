@@ -1,11 +1,11 @@
 % param
 rawFile = 'D:\data\StrokeMTEP\PT_Groups_avg_reorganized.mat';
-pcaFile = 'D:\data\StrokeMTEP\MTEP_PT-Veh_Sham_PCA.mat';
+pcaFile = 'D:\data\StrokeMTEP\MTEP_PT-Veh_PT_PCA.mat';
 maskFile = 'D:\data\atlas.mat';
 
 % load
 load(rawFile);
-load(pcaFile); % coeff, score
+load(pcaFile); % coeff, score, mu, diff
 load(maskFile,'mask','mask2','AtlasSeedsFilled','seednames'); % mask
 
 %%
@@ -54,8 +54,9 @@ load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
 mask2 = symisbrainall;
 
 n = 1;
-% z = mean(score(:,n)*coeff(:,n)',2);
-z = score(:,n).*coeff(:,n);
+% z = mean(score(:,n)*coeff(:,n)'+mu(n),2);
+% z = score(:,n).*coeff(:,n);
+z = diff*coeff(:,n)./sqrt(size(diff,1));
 cLim = [-0.3 0.3];
 f2 = figure('Position',[50 650 600 300]);
 p = panel();

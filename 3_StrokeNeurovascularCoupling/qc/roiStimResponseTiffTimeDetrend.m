@@ -7,7 +7,7 @@ roiData = load(roiFile);
 roi = roiData.roiR75;
 
 % saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseBothDetrend.mat';
-saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseTimeDetrend.mat';
+saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseTimeDetrend1Mouse.mat';
 
 systemInfo = mouse.expSpecific.sysInfo('fcOIS2');
 sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
@@ -18,7 +18,7 @@ sessionInfo.freqout = sessionInfo.framerate;
 
 % get list of mice
 excelFile = 'D:\data\Stroke Study 1 sorted.xlsx';
-rows = 1:14;
+rows = 1;
 recDates = [];
 mouseNames = [];
 for row = rows

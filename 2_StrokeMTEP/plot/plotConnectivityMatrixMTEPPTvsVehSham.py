@@ -45,13 +45,14 @@ def imagesc(ax,data,clim,boundary,tickLoc):
 def main():
     rawFile = 'D:\\data\\StrokeMTEP\\SHAM_Groups_avg_reorganized.mat'
     rawFile2 = 'D:\\data\\StrokeMTEP\\PT_Groups_avg_reorganized.mat'
-    diffFile = 'D:\\data\\StrokeMTEP\\MTEP_PT-Veh_ShamAvg.mat'
+    diffFile = 'D:\\data\\StrokeMTEP\\MTEP_PT-Veh_PTAvg.mat'
     maskFile = 'D:\\data\\atlas.mat'
-    figFile = 'C:\\Users\\Kenny\\Desktop\\test.eps'
+    figFile = 'C:\\Users\\Kenny\\Desktop\\MTEP_effect_with_PT.png'
 
-    f = h5py.File(Path(rawFile),'r')
-    vehData = np.array(f['Veh'])
+    #f = h5py.File(Path(rawFile),'r')
+    #vehData = np.array(f['Veh'])
     f = h5py.File(Path(rawFile2),'r')
+    vehData = np.array(f['Veh_PT'])
     mtepData = np.array(f['MTEP_PT'])
     f = h5py.File(Path(diffFile),'r')
     diffData = np.array(f['diff'])
@@ -72,7 +73,7 @@ def main():
     clim = np.zeros((2,3))
     clim[:,0] = np.array([-1, 1])
     clim[:,1] = np.array([-1, 1])
-    clim[:,2] = np.array([-0.5, 0.5])
+    clim[:,2] = np.array([-0.3, 0.3])
 
     # plot
     fig, axes = plt.subplots(nrows=1,ncols=3)
@@ -83,7 +84,7 @@ def main():
     plt.tight_layout()
     plt.show()
 
-    fig.savefig(figFile, format='eps')
+    fig.savefig(figFile, format='png')
     print('fig saved')
 
 if __name__ == "__main__":
