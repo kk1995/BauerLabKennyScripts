@@ -17,11 +17,13 @@ for row = rows
 end
 
 roiResponse = [];
+roiBlockResponse = [];
 stimResponse = [];
 
 for mouseInd = 1:numel(mouseNames)
     disp(['mouse # ' num2str(mouseInd)]);
     for run = 1:3
+        disp(['run # ' num2str(run)]);
         fileName = strcat("K:\Proc2\",recDates(mouseInd),"\",recDates(mouseInd),"-",...
             mouseNames(mouseInd),"-dataGCaMP-stim",num2str(run),".mat");
         load(fileName);
@@ -41,12 +43,17 @@ for mouseInd = 1:numel(mouseNames)
         stimTimeInd = blockTime > 5 & blockTime < 10;
         stimResponseRun = nanmean(blockData(:,:,:,stimTimeInd),4);
         
-        roiResponseRun = reshape(blockData,128*128,4,[]);
+        roiResponseRun = reshape(runData,128*128,4,[]);
         roiResponseRun = roiResponseRun(roi,:,:);
         roiResponseRun = squeeze(nanmean(roiResponseRun,1));
         
+        roiBlockResponseRun = reshape(blockData,128*128,4,[]);
+        roiBlockResponseRun = roiBlockResponseRun(roi,:,:);
+        roiBlockResponseRun = squeeze(nanmean(roiBlockResponseRun,1));
+        
         % save to larger matrix
-        roiResponse = cat(3,roiResponse, roiResponseRun);
+        roiBlockResponse = cat(3,roiBlockResponse, roiBlockResponseRun);
+        roiResponse = cat(3,roiResponse,roiResponseRun);
         stimResponse = cat(4,stimResponse,stimResponseRun);
     end
     
@@ -57,11 +64,11 @@ end
 
 %% save
 
-save('D:\data\zachRosenthal\_stim\roiRResponseMouse1.mat','roiResponse');
+save('D:\data\zachRosenthal\_stim\roiRResponseMouse1.mat','roiResponse','roiBlockResponse','stimResponse');
 
 %% plot
 
-plotData = nanmean(roiResponse,3);
+plotData = nanmean(roiBlockResponse,3);
 plot(blockTime,plotData(1,:),'r');
 hold on;
 plot(blockTime,plotData(2,:),'b');

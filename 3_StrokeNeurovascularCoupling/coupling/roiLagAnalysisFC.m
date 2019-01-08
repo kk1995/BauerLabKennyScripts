@@ -13,10 +13,10 @@ roiFile = 'D:\data\zachRosenthal\_stim\ROI R 75.mat';
 roiData = load(roiFile);
 roi = roiData.roiR75;
 
-stimStatus = 'stim';
+stimStatus = 'fc';
 
-lagTime = nan(numel(files),1);
-lagAmp = nan(numel(files),1);
+lagTime = [];
+lagAmp = [];
 
 %%
 
@@ -70,26 +70,21 @@ for file = files
         roiResponseRun = roiResponseRun(roi,:,:);
         roiResponseRun = squeeze(nanmean(roiResponseRun,1));
         
-        roiResponse = cat(3,roiResponse,roiResponseRun);
+        edgeLen = 3;
+        validRange = round(tZone*sR);
+                
+        data1 = sum(roiResponseRun(data1Ind,:),1);
+        data2 = sum(roiResponseRun(data2Ind,:),1);
+        
+        [lagTimeRun,lagAmpRun,covResult] = mouse.conn.findLag(data1,data2,true,true,...
+            validRange,edgeLen,0);
+        
+        lagTimeRun = lagTimeRun./sR;
+        
+        lagTime = [lagTime lagTimeRun];
+        lagAmp = [lagAmp lagAmpRun];
     end
     
-    %% lag analysis
-    
-    edgeLen = 3;
-    validRange = round(tZone*sR);
-    
-    roiResponseAvg = nanmean(roiResponse,3);
-    
-    data1 = sum(roiResponseAvg(data1Ind,:),1);
-    data2 = sum(roiResponseAvg(data2Ind,:),1);
-    
-    [lagTimeMouse,lagAmpMouse,covResult] = mouse.conn.findLag(data1,data2,true,true,...
-        validRange,edgeLen,0);
-    
-    lagTimeMouse = lagTimeMouse./sR;
-    
-    lagTime(fileInd) = lagTimeMouse;
-    lagAmp(fileInd) = lagAmpMouse;
     disp(['  took '  num2str(toc(t0)) ' seconds.']);
 
 end
