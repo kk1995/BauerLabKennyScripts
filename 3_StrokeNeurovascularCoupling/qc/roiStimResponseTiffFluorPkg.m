@@ -11,9 +11,9 @@ roi = roiData.roiR75;
 
 wlSaveDir = 'D:\data\zachRosenthal\_wl';
 % saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseBothDetrend.mat';
-saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseFluorPkgMouse1.mat';
+saveFile = 'D:\data\zachRosenthal\_stim\rStimResponseFluorPkgNewDPFMouse1-3.mat';
 
-systemInfo = mouse.expSpecific.sysInfo('fcOIS2');
+systemInfo = mouse.expSpecific.sysInfo('fcOIS2_Fluor');
 sessionInfo = mouse.expSpecific.sesInfo('gcamp6f');
 sessionInfo.detrendSpatially = false;
 sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
@@ -23,7 +23,7 @@ sR = sessionInfo.framerate;
 
 % get list of mice
 excelFile = 'D:\data\Stroke Study 1 sorted.xlsx';
-rows = 1;
+rows = 1:3;
 recDates = [];
 mouseNames = [];
 for row = rows
@@ -60,6 +60,10 @@ for mouseInd = 1:numel(mouseNames)
         
         [datahb,dataFluor,dataFluorCorr] = fluor.process(data,systemInfo,sessionInfo,xform_isbrain);
         
+%         datahb = preprocess.gsr(datahb,xform_isbrain);
+%         dataFluor = preprocess.gsr(dataFluor,xform_isbrain);
+%         dataFluorCorr = preprocess.gsr(dataFluorCorr,xform_isbrain);
+        
         hbData = cat(4,datahb(:,:,:,1),datahb);
         gcamp6 = cat(4,dataFluor(:,:,:,1),dataFluor);
         gcamp6corr = cat(4,dataFluorCorr(:,:,:,1),dataFluorCorr);
@@ -80,6 +84,9 @@ for mouseInd = 1:numel(mouseNames)
         roiResponseRun = roiResponseRun(roi,:,:);
         roiResponseRun = squeeze(nanmean(roiResponseRun,1));
         
+        baseTimeInd = blockTime < 5;
+        roiResponseRun = roiResponseRun - repmat(nanmean(roiResponseRun(:,baseTimeInd),2),1,size(roiResponseRun,2));
+        
         % save to larger matrix
         roiResponse = cat(3,roiResponse, roiResponseRun);
         stimResponse = cat(4,stimResponse,stimResponseRun);
@@ -97,12 +104,15 @@ meta.mice = rows;
 %% save
 
 % save('D:\data\zachRosenthal\_stim\roiRResponse.mat','roiResponse');
-save(saveFile,...
-    'roiResponse','stimResponse','meta','sessionInfo');
+% save(saveFile,...
+%     'roiResponse','stimResponse','meta','sessionInfo');
 %% plot
 
-figure;
+baseTimeInd = blockTime < 5;
 plotData = nanmean(roiResponse,3);
+plotData = bsxfun(@minus,plotData,nanmean(plotData(:,baseTimeInd),2));
+
+figure;
 plotData(1:2,:) = 1000*plotData(1:2,:);
 plot(blockTime,plotData(1,:),'r');
 hold on;
@@ -113,6 +123,7 @@ plot(blockTime,plotData(4,:),'m');
 
 legend('hbO','hbR','hbT','g6','g6corrected')
 ylim([-6E-3 6E-3])
+% ylim([-1.5E-2 1.5E-2])
 
 %%
 plotData = nanmean(stimResponse,4);
@@ -121,6 +132,7 @@ plotData(:,:,3) = sum(plotData(:,:,1:2),3);
 figure;
 subTitles = ["HbO","HbR","HbT","gcamp corr"];
 cLim = [-5E-4 5E-4; -5E-4 5E-4; -5E-4 5E-4; -2E-3 2E-3];
+% cLim = [-5E-4 5E-4; -5E-4 5E-4; -5E-4 5E-4; -1E-2 1E-2];
 for i = 1:4
 subplot(2,2,i);
 imagesc(plotData(:,:,i),cLim(i,:));

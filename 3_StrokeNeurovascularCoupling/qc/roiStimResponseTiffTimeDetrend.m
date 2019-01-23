@@ -87,8 +87,8 @@ meta.mice = rows;
 %% save
 
 % save('D:\data\zachRosenthal\_stim\roiRResponse.mat','roiResponse');
-save(saveFile,...
-    'roiResponse','stimResponse','meta','sessionInfo');
+% save(saveFile,...
+%     'roiResponse','stimResponse','meta','sessionInfo');
 %% plot
 
 figure;

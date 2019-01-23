@@ -1,86 +1,72 @@
+% this script is a wrapper around gcampImaging.m function that shows how
+% the function should be used. As shown, you state which tiff file to run,
+% then get system and session information either via the functions
+% sysInfo.m and session2procInfo.m or manual addition. Run the
+% gcampImaging.m function afterwards and you are good to go!
 
-import mouse.*
+% saveFileName = "181204-ProbeW9M1-Post_preprocessed.mat";
+saveFileName = "180713-NewProbeM3W5-Post_preprocessed.mat";
+
+saveDir = "D:\data\6-nbdg";
+% saveDir = "D:\data\wildType";
+%% state the tiff file
+
+% tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif"];
 
 tiffFileName = ["J:\180713\180713-NewProbeM3W5Post.tif" ...
     "J:\180713\180713-NewProbeM3W5Post_X2.tif" ...
     "J:\180713\180713-NewProbeM3W5Post_X3.tif" ...
     "J:\180713\180713-NewProbeM3W5Post_X4.tif"];
-saveFileName = "180713-NewProbeM3W5-Post-processed.mat";
-saveMaskFile = "180713-NewProbeM3W5-Post-mask.mat";
-saveDir = "D:\data\6-nbdg";
 
-speciesNum = 4;
+%% get system or session information.
+
+% use the pre-existing system and session information by selecting the type
+% of system and the type of session. If the system or session you are using
+% do not fit the existing choices, you can either add new system and
+% session types or add them manually.
+% for systemInfo, you need rgb and LEDFiles
+% for sessionInfo, you need framerate, freqout, lowpass, and highpass
+
+% systemType = 'fcOIS1', 'fcOIS2', 'fcOIS2_Fluor' or 'EastOIS1_Fluor'
 systemInfo = mouse.expSpecific.sysInfo('fcOIS2_Fluor');
+
+% sessionType = 'fc' or 'stim'
 sessionInfo = mouse.expSpecific.sesInfo('6-nbdg');
 sessionInfo.framerate = 16.8;
-sessionInfo.freqout = 2;
+% sessionInfo.framerate = 16.8;
+sessionInfo.freqout = 4;
+sessionInfo.lowpass = sessionInfo.framerate/2 - 0.1;
 
-darkFrameInd = [];
+%% get gcamp and hb data
+darkFrameNum = 0;
 
-blockDuration = 60; % time per block in seconds.
-stimTimeLim = [5 10]; % stimulation period within the block.
-% 1st value is start of stim, 2nd value is end of stim.
-
-centerCoor = [80 103];
-
-%% load and process data if not done already
-
-if ~exist(fullfile(saveDir,saveFileName))
-    
-    %% get raw data
-    
-    disp('get raw data');
-    
-    [raw, rawTime] = read.readRaw(tiffFileName,speciesNum,systemInfo.readFcn,...
-        sessionInfo.framerate,sessionInfo.freqout);
-    
-    if ~exist(saveMaskFile)
-        rgbOrder = systemInfo.rgb;
-        wl = preprocess.getWL(raw,darkFrameInd,rgbOrder);
-        [isbrain, affineMarkers] = preprocess.getLandmarksAndMask(wl);
-        save(saveMaskFile,'isbrain','affineMarkers');
-    else
-        load(saveMaskFile);
-    end
-    
-    %% preprocess and process
-    
-    disp('process and preprocess')
-    
-    [time,data] = fluor.preprocess(rawTime,raw,systemInfo,sessionInfo,...
-        affineMarkers,'darkFrameInd',darkFrameInd);
-    xform_isbrain = preprocess.affineTransform(isbrain,affineMarkers);
-    
-    [xform_hb,xform_gcamp,xform_gcampCorr] = fluor.process(data,systemInfo,sessionInfo,xform_isbrain);
-    %% save
-    
-    disp('save');
-    
-    save(fullfile(saveDir,saveFileName),'time','xform_hb','xform_gcamp',...
-        'xform_gcampCorr','isbrain','xform_isbrain','affineMarkers','-v7.3');
+if exist('isbrain')
+    [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
+        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
 else
-    load(fullfile(saveDir,saveFileName));
+    [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
+        = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
 end
+
+% % if brain mask and markers are available:
+% [raw, time, xform_hb, xform_probe, xform_probeCorr, isbrain, xform_isbrain, markers] ...
+%     = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkTime',5);
+
+% isbrain = logical nxn array of brain mask.
+% markers = the brain markers that are created during the whole GUI where
+% you click on the midline suture and lambda. If you do not have these,
+% just run the code without giving these inputs, go through the GUI, then
+% the code will output isbrain, xform_isbrain, and markers.
+
+%% save
+
+save(fullfile(saveDir,saveFileName),'sessionInfo','xform_hb','xform_probe','time','xform_probeCorr','isbrain','xform_isbrain','markers','-v7.3');
 
 %% gsr
 
-disp('gsr');
-
 xform_hb = mouse.preprocess.gsr(xform_hb,xform_isbrain);
-xform_gcamp = mouse.preprocess.gsr(xform_gcamp,xform_isbrain);
-xform_gcampCorr = mouse.preprocess.gsr(xform_gcampCorr,xform_isbrain);
-
-%% get block avg
-
-disp('get block average');
-
-xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
-xform_probeBlock = mouse.preprocess.blockAvg(xform_gcamp,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
-xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_gcampCorr,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
-blockTime = linspace(0,blockDuration,blockDuration*sessionInfo.freqout+1); blockTime(1) = [];
+xform_probe = mouse.preprocess.gsr(xform_probe,xform_isbrain);
+xform_probeCorr = mouse.preprocess.gsr(xform_probeCorr,xform_isbrain);
 
 %% plot raw
 figure;
@@ -93,19 +79,28 @@ for i = 1:4
     variance = std(plotData,0,2);
     varianceRatio = variance/mean(plotData);
     varianceText = strcat("s.d./mu = ", num2str(varianceRatio,'%.3f'));
-    plot(rawTime,plotData);
+    plot(time,plotData);
     text(0.8,0.85,varianceText,'Units','normalized');
 end
 
+%% get block avg
+
+xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,60,60*4);
+xform_probeBlock = mouse.preprocess.blockAvg(xform_probe,time,60,60*4);
+xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_probeCorr,time,60,60*4);
+blockTime = linspace(0,60,60*4+1); blockTime(end) = [];
+
 %% plot block avg
 
-stimTime = (blockTime > stimTimeLim(1) & blockTime <= stimTimeLim(2));
+stimTime = (blockTime > 5 & blockTime <= 10);
 xform_hbStim = nanmean(xform_hbBlock(:,:,:,stimTime),4);
 xform_probeStim = nanmean(xform_probeBlock(:,:,:,stimTime),4);
 xform_probeCorrStim = nanmean(xform_probeCorrBlock(:,:,:,stimTime),4);
 
-plotData = cat(3,xform_hbStim,xform_probeStim,xform_probeCorrStim);
-cLim = [-1E-6 1E-6; -1E-6 1E-6; -0.01 0.01; -0.02 0.02];
+plotData = cat(3,1000*xform_hbStim,xform_probeStim,xform_probeCorrStim);
+% cLim = [-0.002 0.002; -0.002 0.002; -0.002 0.002; -0.005 0.005];
+% cLim = [-0.02 0.02; -0.02 0.02; -0.01 0.01; -0.07 0.07];
+cLim = [-0.005 0.005; -0.005 0.005; -0.01 0.01; -0.03 0.03];
 
 titleStr = ["HbO","HbR","fluor","corrected"];
 figure;
@@ -123,18 +118,18 @@ for i = 1:4
 end
 
 %% get roi
-
-roiMap = xform_hbStim(:,:,1);
-
-% find coordinates above the threshold
-coor = mouse.plot.circleCoor(centerCoor,20);
-coor = coor(1,:)+size(xform_hb,2)*coor(2,:);
-inCoor = false(size(xform_hb,2));
-inCoor(coor) = true;
-threshold = 0.75*prctile(roiMap(coor),95);
-
-roiCandidates = roiMap >= threshold;
-roiCandidates(~inCoor) = false;
+temp = xform_probeCorrStim(:,:,1);
+temp(~xform_isbrain) = nan;
+vascularMask = false(128);
+vascularMask(1:25,:) = true;
+vascularMask(:,64-5:64+5) = true;
+vascularMask(~xform_isbrain) = false;
+temp(vascularMask) = nan;
+threshold = 0.75*prctile(temp(:),95);
+roiCandidates = xform_probeCorrStim(:,:,1) >= threshold;
+% roiCandidates(abs(xform_probeCorrStim) > 0.02) = false;
+roiCandidates(~xform_isbrain) = false;
+roiCandidates(vascularMask) = false;
 
 % choose largest cluster
 clusters = bwconncomp(roiCandidates,4);
@@ -148,12 +143,9 @@ roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
 
 %% plot roi avg
 
-figure;
-imagesc(roi); axis(gca,'square'); xticklabels([]); yticklabels([]);
-
 xform_hbRoi = reshape(xform_hb,size(xform_hb,1)*size(xform_hb,2),size(xform_hb,3),[]);
-xform_probeRoi = reshape(xform_gcamp,size(xform_gcamp,1)*size(xform_gcamp,2),size(xform_gcamp,3),[]);
-xform_probeCorrRoi = reshape(xform_gcampCorr,size(xform_gcampCorr,1)*size(xform_gcampCorr,2),size(xform_gcampCorr,3),[]);
+xform_probeRoi = reshape(xform_probe,size(xform_probe,1)*size(xform_probe,2),size(xform_probe,3),[]);
+xform_probeCorrRoi = reshape(xform_probeCorr,size(xform_probeCorr,1)*size(xform_probeCorr,2),size(xform_probeCorr,3),[]);
 
 xform_hbNotRoi = squeeze(nanmean(xform_hbRoi(~roi & xform_isbrain,:,:),1)); % 2 x time
 xform_probeNotRoi = squeeze(nanmean(xform_probeRoi(~roi & xform_isbrain,:,:),1))'; % 1 x time
@@ -206,13 +198,13 @@ xform_hbRoiBlock = reshape(xform_hbBlock,size(xform_hbBlock,1)*size(xform_hbBloc
 xform_probeRoiBlock = reshape(xform_probeBlock,size(xform_probeBlock,1)*size(xform_probeBlock,2),size(xform_probeBlock,3),[]);
 xform_probeCorrRoiBlock = reshape(xform_probeCorrBlock,size(xform_probeCorrBlock,1)*size(xform_probeCorrBlock,2),size(xform_probeCorrBlock,3),[]);
 
-xform_hbRoiBlock = squeeze(nanmean(xform_hbRoiBlock(roi,:,:),1)); % 2 x 60*sessionInfo.freqout
-xform_probeRoiBlock = squeeze(nanmean(xform_probeRoiBlock(roi,:,:),1))'; % 1 x 60*sessionInfo.freqout
-xform_probeCorrRoiBlock = squeeze(nanmean(xform_probeCorrRoiBlock(roi,:,:),1))'; % 1 x 60*sessionInfo.freqout
+xform_hbRoiBlock = squeeze(nanmean(xform_hbRoiBlock(roi,:,:),1)); % 2 x 60
+xform_probeRoiBlock = squeeze(nanmean(xform_probeRoiBlock(roi,:,:),1))'; % 1 x 60
+xform_probeCorrRoiBlock = squeeze(nanmean(xform_probeCorrRoiBlock(roi,:,:),1))'; % 1 x 60
 
-xform_hbRoiAvgBaseline = nanmean(xform_hbRoiBlock(:,1:stimTimeLim(1)*sessionInfo.freqout),2);
-xform_probeRoiAvgBaseline = nanmean(xform_probeRoiBlock(:,1:stimTimeLim(1)*sessionInfo.freqout),2);
-xform_probeCorrRoiAvgBaseline = nanmean(xform_probeCorrRoiBlock(:,1:stimTimeLim(1)*sessionInfo.freqout),2);
+xform_hbRoiAvgBaseline = nanmean(xform_hbRoiBlock(:,1:5),2);
+xform_probeRoiAvgBaseline = nanmean(xform_probeRoiBlock(:,1:5),2);
+xform_probeCorrRoiAvgBaseline = nanmean(xform_probeCorrRoiBlock(:,1:5),2);
 
 xform_hbRoiBlock = xform_hbRoiBlock - repmat(xform_hbRoiAvgBaseline,1,size(xform_hbRoiBlock,2));
 xform_probeRoiBlock = xform_probeRoiBlock - repmat(xform_probeRoiAvgBaseline,1,size(xform_probeRoiBlock,2));

@@ -4,16 +4,27 @@
 % sysInfo.m and session2procInfo.m or manual addition. Run the
 % gcampImaging.m function afterwards and you are good to go!
 
+%% import packages
+
+import mouse.*
+
+
+%% initialize
 dataAvg = [];
 stimResponse = [];
+roiRuns = [];
 
+filePrefix = "\\10.39.168.176\RawData_East3410\181217\181217-G3M1-stim";
+saveFilePrefix = "D:\data\gcamp6f\181217-G3M1-stim";
+
+%% for each run
 for run = 1:3
-    disp(num2str(run));
+    disp(['run #' num2str(run)]);
     
     %% state the tif file
     
-    tiffFileName = strcat("\\10.39.168.176\RawData_East3410\181217\181217-G3M1-stim",num2str(run),".tif");
-    saveFileName = strcat("D:\data\gcamp6f\181217-G3M1-stim",num2str(run),"-processed_old.mat");
+    fileName = strcat(filePrefix,num2str(run),".tif");
+    saveFileName = strcat(saveFilePrefix,num2str(run),"-processed-newDPF.mat");
     
     %% get system or session information.
     
@@ -33,29 +44,36 @@ for run = 1:3
     sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
     sessionInfo.freqout = sessionInfo.framerate;
     
-    %% get gcamp and hb data
-    darkFrameNum = 118;
+    darkFrameInd = 1:118;
     
-    if exist(saveFileName)
-        load(saveFileName);
+    %% get raw
+    
+    speciesNum = systemInfo.numLEDs;
+    raw = read.readRaw(fileName,speciesNum,systemInfo.readFcn);
+    time = 1:size(raw,4); time = time./sessionInfo.framerate;
+    
+    if run == 1
+        %% get WL image, landmarks, and mask
+        rgbOrder = systemInfo.rgb;
+        wl = preprocess.getWL(raw,darkFrameInd,rgbOrder);
+        [isbrain, affineMarkers] = preprocess.getLandmarksAndMask(wl);
+        save(strcat(saveFilePrefix,"-mask.mat"),'isbrain','affineMarkers');
     else
-        
-        if exist('isbrain')
-            % if brain mask and markers are available:
-            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo, isbrain, markers,'darkFrameNum',darkFrameNum);
-        else
-            [raw, time, xform_hb, xform_gcamp, xform_gcampCorr, isbrain, xform_isbrain, markers] ...
-                = probe.probeImaging(tiffFileName, systemInfo, sessionInfo,'darkFrameNum',darkFrameNum);
-        end
-        % isbrain = logical nxn array of brain mask.
-        % markers = the brain markers that are created during the whole GUI where
-        % you click on the midline suture and lambda. If you do not have these,
-        % just run the code without giving these inputs, go through the GUI, then
-        % the code will output isbrain, xform_isbrain, and markers.
-        
-        save(saveFileName,'xform_hb','xform_gcamp','xform_gcampCorr','isbrain','xform_isbrain','markers','-v7.3');
+        load(strcat(saveFilePrefix,"-mask.mat"));
     end
+    
+    %% preprocess
+    
+    [time,data] = fluor.preprocess(time,raw,systemInfo,sessionInfo,affineMarkers,'darkFrameInd',darkFrameInd);
+    xform_isbrain = preprocess.affineTransform(isbrain,affineMarkers);
+    
+    %% process
+    
+    [xform_hb,xform_gcamp,xform_gcampCorr] = fluor.process(data,systemInfo,sessionInfo,xform_isbrain);
+    
+%     load(saveFileName);
+    
+    save(saveFileName,'time','xform_hb','xform_gcamp','xform_gcampCorr','isbrain','xform_isbrain','affineMarkers','-v7.3');
     %% gsr
     
     xform_hb = mouse.preprocess.gsr(xform_hb,xform_isbrain);
@@ -69,22 +87,13 @@ for run = 1:3
     
     %% get block avg
     
-%     xform_hb = cat(4,zeros(size(xform_hb,1),size(xform_hb,2),size(xform_hb,3)),xform_hb);
-%     xform_gcamp = cat(4,zeros(size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3)),xform_gcamp);
-%     xform_gcampCorr = cat(4,zeros(size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3)),xform_gcampCorr);
+    freqOut = 8;
     
-    xform_hbAvg = reshape(xform_hb,size(xform_hb,1),size(xform_hb,2),size(xform_hb,3),707,[]);
-    xform_gcampAvg = reshape(xform_gcamp,size(xform_gcamp,1),size(xform_gcamp,2),size(xform_gcamp,3),707,[]);
-    xform_gcampCorrAvg = reshape(xform_gcampCorr,size(xform_gcampCorr,1),size(xform_gcampCorr,2),size(xform_gcampCorr,3),707,[]);
+    xform_hbAvg = mouse.preprocess.blockAvg(xform_hb,time,30,30*freqOut);
+    xform_gcampAvg = mouse.preprocess.blockAvg(xform_gcamp,time,30,30*freqOut);
+    xform_gcampCorrAvg = mouse.preprocess.blockAvg(xform_gcampCorr,time,30,30*freqOut);
     
-    xform_hbAvg = nanmean(xform_hbAvg,5);
-    xform_gcampAvg = nanmean(xform_gcampAvg,5);
-    xform_gcampCorrAvg = nanmean(xform_gcampCorrAvg,5);
-    
-%     xform_hbAvg = mouse.preprocess.blockAvg(xform_hb,time,30,30*sessionInfo.framerate);
-%     xform_gcampAvg = mouse.preprocess.blockAvg(xform_gcamp,time,30,30*sessionInfo.framerate);
-%     xform_gcampCorrAvg = mouse.preprocess.blockAvg(xform_gcampCorr,time,30,30*sessionInfo.framerate);
-    blockTime = linspace(0,30,707+1); blockTime(end) = [];
+    blockTime = linspace(0,30,30*freqOut+1); blockTime(end) = [];
     
     stimTime = (blockTime > 5 & blockTime <= 10);
     xform_hbStim = nanmean(xform_hbAvg(:,:,:,stimTime),4);
@@ -93,26 +102,36 @@ for run = 1:3
     stimResponseRun = cat(3,xform_hbStim,xform_gcampStim,xform_gcampCorrStim);
     
     %% get fluor roi response
-    temp = xform_hbStim(:,:,1);
-    temp([1:40 100:128],:) = [];
-    temp(:,53:128) = [];
-    threshold = 0.75*prctile(temp(:),95);
-%     roiCandidates = xform_hbStim(:,:,1) >= threshold;
-%     % roiCandidates(abs(xform_probeCorrStim) > 0.02) = false;
-%     roiCandidates([1:40 100:128],:) = false;
-%     roiCandidates(:,53:128) = false;
-%     
-%     % choose largest cluster
-%     clusters = bwconncomp(roiCandidates,4);
-%     clusterSizes = nan(clusters.NumObjects,1);
-%     for clusterInd = 1:clusters.NumObjects
-%         clusterSizes(clusterInd) = numel(clusters.PixelIdxList{clusterInd});
-%     end
-%     maxClusterSize = max(clusterSizes);
-%     roi = false(size(roiCandidates));
-%     roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
+    roiMap = abs(xform_hbStim(:,:,1));
+    candidateCoor = mouse.plot.circleCoor([76 27],8);
+    candidateCoor = candidateCoor(1,:) + size(roiMap,1)*candidateCoor(2,:);
+    roiMapSub = zeros(size(roiMap)); roiMapSub(candidateCoor) = roiMap(candidateCoor);
+    centerCoor = find(roiMapSub == max(roiMapSub(:)));
+    centerCoor = [mod(centerCoor-1,size(roiMap,1))+1, floor(centerCoor/size(roiMap,1))];
     
-    load('roi.mat');
+    coor = mouse.plot.circleCoor(centerCoor,15);
+    coor = coor(1,:)+size(xform_hb,2)*coor(2,:);
+    inCoor = false(size(xform_hb,2));
+    inCoor(coor) = true;
+    
+    roiMapSub = zeros(size(roiMap)); roiMapSub(candidateCoor) = roiMap(candidateCoor);
+    threshold = 0.75*prctile(roiMap(coor),95);
+    
+    roiCandidates = roiMap >= threshold;
+    roiCandidates(~inCoor) = false;
+    
+    % choose largest cluster
+    clusters = bwconncomp(roiCandidates,4);
+    clusterSizes = nan(clusters.NumObjects,1);
+    for clusterInd = 1:clusters.NumObjects
+        clusterSizes(clusterInd) = numel(clusters.PixelIdxList{clusterInd});
+    end
+    maxClusterSize = max(clusterSizes);
+    roi = false(size(roiCandidates));
+    roi(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
+    
+    roiRuns = cat(3,roiRuns,roi);
+%     load('roi.mat');
     
     xform_hbRoiAvgRun = reshape(xform_hbAvg,size(xform_hbAvg,1)*size(xform_hbAvg,2),size(xform_hbAvg,3),[]);
     xform_gcampRoiAvgRun = reshape(xform_gcampAvg,size(xform_gcampAvg,1)*size(xform_gcampAvg,2),size(xform_gcampAvg,3),[]);
@@ -122,9 +141,9 @@ for run = 1:3
     xform_gcampRoiAvgRun = squeeze(nanmean(xform_gcampRoiAvgRun(roi,:,:),1))'; % 1 x 60
     xform_gcampCorrRoiAvgRun = squeeze(nanmean(xform_gcampCorrRoiAvgRun(roi,:,:),1))'; % 1 x 60
     
-    xform_hbRoiAvgBaseline = nanmean(xform_hbRoiAvgRun(:,1:floor(5*sessionInfo.framerate)),2);
-    xform_gcampRoiAvgBaseline = nanmean(xform_gcampRoiAvgRun(:,1:floor(5*sessionInfo.framerate)),2);
-    xform_gcampCorrRoiAvgBaseline = nanmean(xform_gcampCorrRoiAvgRun(:,1:floor(5*sessionInfo.framerate)),2);
+    xform_hbRoiAvgBaseline = nanmean(xform_hbRoiAvgRun(:,1:floor(5*freqOut)),2);
+    xform_gcampRoiAvgBaseline = nanmean(xform_gcampRoiAvgRun(:,1:floor(5*freqOut)),2);
+    xform_gcampCorrRoiAvgBaseline = nanmean(xform_gcampCorrRoiAvgRun(:,1:floor(5*freqOut)),2);
     
     xform_hbRoiAvgRun = xform_hbRoiAvgRun - repmat(xform_hbRoiAvgBaseline,1,size(xform_hbRoiAvgRun,2));
     xform_gcampRoiAvgRun = xform_gcampRoiAvgRun - repmat(xform_gcampRoiAvgBaseline,1,size(xform_gcampRoiAvgRun,2));
@@ -143,8 +162,9 @@ figure;
 p1 = plot(blockTime,plotData(1,:),'r'); hold on;
 p2 = plot(blockTime,plotData(2,:),'b');
 p3 = plot(blockTime,sum(plotData(1:2,:),1),'k');
+ylim([-1E-6 1.5E-6]);
 yLim = ylim(gca);
-stimT = 5:1/3:10; stimT(end) = [];
+stimT = 5:10; stimT(end) = [];
 for t = stimT
     plot([t t],yLim,'m');
 end
@@ -153,8 +173,9 @@ legend([p1 p2 p3],["HbO","HbR","HbT"]);
 figure;
 p1 = plot(blockTime,plotData(3,:),'g'); hold on;
 p2 = plot(blockTime,plotData(4,:),'k');
+ylim([-10E-3 8E-3]);
 yLim = ylim(gca);
-stimT = 5:1/3:10; stimT(end) = [];
+stimT = 5:10; stimT(end) = [];
 for t = stimT
     plot([t t],yLim,'m');
 end
@@ -169,6 +190,7 @@ titleArray = ["HbO","HbR","HbT","fluor corrected"];
 % cLim = [-0.5 0.5; -0.5 0.5; -0.5 0.5; -3E3 3E3]./1E6;
 % cLim = [-5 5; -5 5; -5 5; -2E4 2E4]./1E6;
 cLim = [-0.5 0.5; -0.5 0.5; -0.5 0.5; -5E3 5E3]./1E6;
+% cLim = [-3 3; -3 3; -0.5 0.5; -5E3 5E3]./1E6;
 figure;
 for i = 1:4
     subplot(2,2,i);
@@ -177,3 +199,5 @@ for i = 1:4
     colorbar;
     title(titleArray(i));
 end
+
+figure; imagesc(mean(roiRuns,3)); axis(gca,'square'); xticklabels([]); yticklabels([]);

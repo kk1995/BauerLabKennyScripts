@@ -1,6 +1,6 @@
 % here, we find the lag of average roi response.
 
-files = 1:14;
+files = 2:14;
 
 data1Ind = 1; % hbo
 data2Ind = 4; % gcamp6 corr
@@ -13,7 +13,7 @@ roiFile = 'D:\data\zachRosenthal\_stim\ROI R 75.mat';
 roiData = load(roiFile);
 roi = roiData.roiR75;
 
-stimStatus = 'fc';
+stimStatus = 'stim';
 
 lagTime = [];
 lagAmp = [];

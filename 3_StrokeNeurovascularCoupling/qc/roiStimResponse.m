@@ -7,7 +7,7 @@ roi = roiData.roiR75;
 
 % get list of mice
 excelFile = 'D:\data\Stroke Study 1 sorted.xlsx';
-rows = 1;
+rows = 1:3;
 recDates = [];
 mouseNames = [];
 for row = rows
@@ -26,6 +26,10 @@ for mouseInd = 1:numel(mouseNames)
         disp(['run # ' num2str(run)]);
         fileName = strcat("K:\Proc2\",recDates(mouseInd),"\",recDates(mouseInd),"-",...
             mouseNames(mouseInd),"-dataGCaMP-stim",num2str(run),".mat");
+        
+        maskFileName = strcat("K:\Proc2\",recDates(mouseInd),"\",recDates(mouseInd),"-",...
+            mouseNames(mouseInd),"-LandmarksandMask.mat");
+        maskData = load(maskFileName);
         load(fileName);
         oxy = cat(3,oxy(:,:,1),oxy);
         deoxy = cat(3,deoxy(:,:,1),deoxy);
@@ -35,6 +39,8 @@ for mouseInd = 1:numel(mouseNames)
         runData = cat(4,oxy,deoxy,gcamp6,gcamp6corr); % 128x128x5040x4
         % oxy, deoxy, gcamp6, gcamp6corr
         runData = permute(runData,[1,2,4,3]);
+        
+        runData = mouse.preprocess.gsr(runData,maskData.mask);
         
         blockData = reshape(runData,128,128,4,sR*blockLen,[]);
         blockData = nanmean(blockData,5);
@@ -68,14 +74,19 @@ save('D:\data\zachRosenthal\_stim\roiRResponseMouse1.mat','roiResponse','roiBloc
 
 %% plot
 
+figure;
 plotData = nanmean(roiBlockResponse,3);
+plotDataBaseline = nanmean(plotData(:,blockTime<5),2);
+plotData = bsxfun(@minus,plotData,plotDataBaseline);
 plot(blockTime,plotData(1,:),'r');
 hold on;
 plot(blockTime,plotData(2,:),'b');
+plot(blockTime,sum(plotData(1:2,:),1),'k');
 plot(blockTime,plotData(3,:),'g');
-plot(blockTime,plotData(4,:),'k');
+plot(blockTime,plotData(4,:),'m');
+ylim([-6E-3 6E-3]);
 
-legend('hbo','hbr','g6','g6corrected')
+legend('hbo','hbr','hbt','g6','g6corrected')
 
 %%
 plotData = nanmean(stimResponse,4);

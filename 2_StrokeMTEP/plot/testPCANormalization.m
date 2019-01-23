@@ -27,8 +27,8 @@ length=size(SeedsUsed,1);
 map=[(1:2:length-1) (2:2:length)];
 NewSeedsUsed(:,1)=SeedsUsed(map, 1);
 NewSeedsUsed(:,2)=SeedsUsed(map, 2);
-for n=1:size(NewSeedsUsed,1)
-    idx_inv(n)=sub2ind([128,128], NewSeedsUsed(n,2), NewSeedsUsed(n,1)); % get the indices of the Seed coordinates used to organize the Pix-Pix matrix
+for pcaInd=1:size(NewSeedsUsed,1)
+    idx_inv(pcaInd)=sub2ind([128,128], NewSeedsUsed(pcaInd,2), NewSeedsUsed(pcaInd,1)); % get the indices of the Seed coordinates used to organize the Pix-Pix matrix
     idx_inv=idx_inv';
 end
 [B,I] = sort(atlas(idx_inv),'ascend');
@@ -54,12 +54,13 @@ gMap = gray(100);
 load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
 mask2 = symisbrainall;
 
-n = 1;
+diff = coeff*score';
+pcaInd = 1;
+
 % z = mean(score(:,n)*coeff(:,n)'+mu(n),2);
 % z = score(:,n).*coeff(:,n);
-diff = coeff*score';
-z = diff*coeff(:,n)./sqrt(size(diff,1));
-cLim = [-0.3 0.3];
+z = diff*coeff(:,pcaInd)./sqrt(size(diff,1));
+cLim = [-0.1 0.1];
 f2 = figure('Position',[50 650 600 300]);
 p = panel();
 p.pack('h', {0.80 []});
@@ -72,6 +73,15 @@ pcaVal = nan(128,128);
 pcaVal(idx_inv) = z;
 ax = mouse.plot.plotBrain(ax,pcaVal,mask2,cLim,cMap,addColorBar);
 
+for pix = 1:size(diff,1)
+    normFactor = sqrt(diff(pix,:)*diff(:,pix));
+    z2(pix) = diff(pix,:)*coeff(:,pcaInd)/normFactor;
+end
+z2Dir = mean(score(:,pcaInd)*coeff(:,pcaInd)',2);
+if corr(z2Dir,z2') < -0.5
+    z2 = -z2;
+end
+cLim = [-1 1];
 f3 = figure('Position',[50 650 600 300]);
 p = panel();
 p.pack('h', {0.80 []});
@@ -79,10 +89,10 @@ p.margin = [0 0 0 0];
 ax = p(1).select();
 axis(ax,'square');
 set(ax,'Visible','off');
-actualVal = nan(128,128);
-actualVal(idx_inv) = nanmean(diffMTEP_PT_minus_Veh_PT);
-ax = mouse.plot.plotBrain(ax,actualVal,mask2,[-0.02 0.02],cMap,addColorBar);
-title('MTEP PT - Veh PT');
+addColorBar = true;
+pcaVal = nan(128,128);
+pcaVal(idx_inv) = z2;
+ax = mouse.plot.plotBrain(ax,pcaVal,mask2,cLim,cMap,addColorBar);
 
 %%
 % f4 = figure('Position',[50 650 1700 300]);
@@ -99,22 +109,30 @@ coorInd = coor(1,:) + (128*(coor(2,:)-1));
 infarctROI = false(128); infarctROI(coorInd) = true;
 color = [0.5 0.5 0.5];
 alpha = 0.5;
-for n = 1:3
-    ax = p(n).select();
-    title(ax,num2str(100*latent(n)/sum(latent)));
+for pcaInd = 1:3
+    ax = p(pcaInd).select();
+    title(ax,num2str(100*latent(pcaInd)/sum(latent)));
     axis(ax,'square');
     set(ax,'Visible','off');
     addColorBar = false;
-    if n == 3
+    if pcaInd == 3
         addColorBar = true;
     end
     pcaVal = nan(128,128);
-    z = score(:,n)*coeff(:,n)';
-    pcaVal(idx_inv) = mean(z,2);
-    ax = mouse.plot.plotBrain(ax,pcaVal,mask2 & mask,[-0.02 0.02],cMap,addColorBar,0.01);
+%     z3 = diff*coeff(:,pcaInd)./sqrt(size(diff,1)); z3 = z3';
+    for pix = 1:size(diff,1)
+        normFactor = sqrt(diff(pix,:)*diff(:,pix));
+        z3(pix) = diff(pix,:)*coeff(:,pcaInd)/normFactor;
+    end
+    z3Dir = mean(score(:,pcaInd)*coeff(:,pcaInd)',2);
+    if corr(z3Dir,z3') < -0.5
+        z3 = -z3;
+    end
+    pcaVal(idx_inv) = z3;
+    ax = mouse.plot.plotBrain(ax,pcaVal,mask2,[-1 1],cMap,addColorBar,0.01);
     % s = plotNodes(s,seedCenter,seedVal,[0 1],blueRedMap,160,false);
     %     s = plotScatter(s,seedCenter,seedVal,[0 1],gMap,160,2);
     ax = mouse.plot.plotCluster(ax,infarctROI,color,alpha);
     ax = mouse.plot.plotContour(ax,infarctROI,'k');
-    title(ax(end),num2str(100*latent(n)/sum(latent)));
+    title(ax(end),num2str(100*latent(pcaInd)/sum(latent)));
 end

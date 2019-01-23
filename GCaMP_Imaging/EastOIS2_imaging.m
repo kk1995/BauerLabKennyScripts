@@ -16,8 +16,8 @@ fileName2 = "J:\180813\180813-ProbeW3M2-Pre.tif";
 orientation1 = [false true]; % only flips on 2nd dim
 orientation2 = [true true]; % only flips on 1st dim
 
-validCh1 = 3:4; % only takes ch 3 and 4 from first file
-validCh2 = 1:2; % only takes ch 1 and 2 from second file
+validCh1 = [1 3]; % only takes ch 3 and 4 from first file
+validCh2 = [2 4]; % only takes ch 1 and 2 from second file
 
 %% get system or session information.
 
