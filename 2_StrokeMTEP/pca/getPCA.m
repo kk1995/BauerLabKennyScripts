@@ -24,4 +24,4 @@ data2(dInd) = inf;
 
 %%
 
-save(saveFile,'coeff','score','latent','mu','-v7.3');
+save(saveFile,'diff','coeff','score','latent','mu','-v7.3');

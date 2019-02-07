@@ -54,12 +54,14 @@ gMap = gray(100);
 load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
 mask2 = symisbrainall;
 
-diff = coeff*score';
+% diff = coeff*score';
 pcaInd = 1;
 
 % z = mean(score(:,n)*coeff(:,n)'+mu(n),2);
 % z = score(:,n).*coeff(:,n);
-z = diff*coeff(:,pcaInd)./sqrt(size(diff,1));
+% z = score(:,pcaInd);
+z = diff*coeff(:,pcaInd);
+% z = diff*coeff(:,pcaInd)./sqrt(size(diff,1));
 cLim = [-0.1 0.1];
 f2 = figure('Position',[50 650 600 300]);
 p = panel();

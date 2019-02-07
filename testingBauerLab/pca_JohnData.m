@@ -12,34 +12,25 @@ import mouse.*
 ratioDataRoiAvg = [];
 stimRatioResponse = [];
 
-date = "181004";
-mouseName = "181004-D16M2-stim";
-maskPrefix = "181004-D16M2";
-
-filePrefix = strcat("\\10.39.168.176\RawData_East3410\", date, "\", mouseName);
-saveFilePrefix = strcat("D:\data\none\",mouseName);
-figFilePrefix = strcat("D:\figures\",mouseName);
-
-speciesNum = 5;
+filePrefix = "\\10.39.168.176\RawData_East3410\181004\181004-D16M2-stim";
+saveFilePrefix = "D:\data\none\181004-D16M2-stim";
+figFilePrefix = "D:\figures\181004-D16M2-stim";
 
 goodRuns{1} = [2 4];
 goodRuns{2} = 1;
 goodRuns{3} = [1 4];
 
-% goodRuns{1} = 1:5;
-
 totalRatioData = [];
 totalData = [];
 totalTime = [];
-timeFrameNum = inf;
 readInfo.speciesNum = speciesNum;
 
-for run = 1
+for run = 1:3
     disp(['run # ' num2str(run)]);
     fileName = strcat(filePrefix,num2str(run),".tif");
     savePreprocFileName = strcat(saveFilePrefix,num2str(run),"-preprocessed.mat");
     saveProcessedFileName = strcat(saveFilePrefix,num2str(run),"-processed.mat");
-    maskFileName = strcat("D:\data\none\",maskPrefix,"-LandmarksandMask.mat");
+    maskFileName = 'D:\data\none\181004-D16M2-LandmarksandMask.mat';
     
     %% get system or session information.
     
@@ -60,7 +51,7 @@ for run = 1
     sessionInfo.hbSpecies = 1:4;
     sessionInfo.probeSpecies = [];
     sessionInfo.framerate = 20;
-    sessionInfo.freqout = 20;
+    sessionInfo.freqout = 8;
     sessionInfo.lowpass = sessionInfo.freqout./2-0.1;
     
     darkFrameInd = [];
@@ -75,19 +66,15 @@ for run = 1
     else
         speciesNum = systemInfo.numLEDs+1;
         disp('loading files');
-        
         [raw, rawTime] = read.readRaw(fileName,systemInfo.readFcn,readInfo,...
         systemInfo.invalidFrameInd,timeFrameNum,sessionInfo.framerate,sessionInfo.freqout);
-    
-        raw = single(raw);
-    
         raw = raw(:,:,1:4,:);
         
         if exist(maskFileName)
             maskData = load(maskFileName);
         else
             rgbOrder = systemInfo.rgb;
-            wl = preprocess.getWL(raw(:,:,:,2),rgbOrder);
+            wl = preprocess.getWL(raw,darkFrameInd,rgbOrder);
             [isbrain, I] = preprocess.getLandmarksAndMask(wl);
             maskData.isbrain = isbrain;
             maskData.I = I;
@@ -99,10 +86,10 @@ for run = 1
         
         %% preprocess
         disp('preprocess');
-        [rawTime,data] = fluor.preprocess(rawTime,raw,systemInfo,sessionInfo,affineMarkers,'darkFrameInd',darkFrameInd);
+        [time,data] = fluor.preprocess(time,raw,systemInfo,sessionInfo,affineMarkers,'darkFrameInd',darkFrameInd);
         xform_isbrain = preprocess.affineTransform(isbrain,affineMarkers);
         
-        save(savePreprocFileName,'systemInfo','sessionInfo','rawTime','data','isbrain','affineMarkers','-v7.3');
+        save(savePreprocFileName,'time','data','isbrain','affineMarkers','-v7.3');
     end
     
     ratioData = logmean(data);
@@ -115,7 +102,7 @@ for run = 1
         disp('process');
         [xform_hb,xform_gcamp,xform_gcampCorr] = fluor.process(data,systemInfo,sessionInfo,xform_isbrain);
         
-        save(saveProcessedFileName,'systemInfo','sessionInfo','xform_hb','xform_gcamp',...
+        save(saveProcessedFileName,'xform_hb','xform_gcamp',...
             'xform_gcampCorr','-v7.3');
     end
     
@@ -128,12 +115,11 @@ for run = 1
     
     goodBlocks = goodRuns{run};
     for goodBlock = 1:numel(goodBlocks)
-        blockFrames = (rawTime - 60*(goodBlock - 1)) > 0 & (rawTime - 60*(goodBlock - 1)) <= 60;
-%         blockFrames = ((goodBlocks(goodBlock)-1)*60*freqOut+1):...
-%             goodBlocks(goodBlock)*60*freqOut;
+        blockFrames = ((goodBlocks(goodBlock)-1)*60*freqOut+1):...
+            goodBlocks(goodBlock)*60*freqOut;
         newRatioData = cat(4,newRatioData,ratioData(:,:,:,blockFrames));
         newData = cat(4,newData,xform_hb(:,:,:,blockFrames));
-        newTime = [newTime rawTime(blockFrames)];
+        newTime = [newTime time(blockFrames)];
     end
     
     totalData = cat(4,totalData,newData);
@@ -142,9 +128,22 @@ for run = 1
     
 end
 
-%% gsr
+%% pca
 
-totalData = mouse.preprocess.gsr(totalData,xform_isbrain);
+disp('pca');
+
+pcaInputHbO = squeeze(totalData(:,:,1,:));
+pcaInputHbO = reshape(pcaInputHbO,size(totalData,1)*size(totalData,2),[]);
+pcaInputHbO = pcaInputHbO';
+
+pcaInputHbR = squeeze(totalData(:,:,2,:));
+pcaInputHbR = reshape(pcaInputHbR,size(totalData,1)*size(totalData,2),[]);
+pcaInputHbR = pcaInputHbR';
+
+pcaInput = reshape(totalData,size(totalData,1)*size(totalData,2)*size(totalData,3),[]);
+pcaInput = pcaInput';
+
+[coeff, score, latent, tsquared, explained, mu] = pca(pcaInput);
 
 %% get block avg
 disp('get block average');

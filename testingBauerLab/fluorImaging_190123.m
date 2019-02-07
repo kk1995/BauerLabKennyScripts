@@ -1,10 +1,8 @@
-% this script is a wrapper around gcampImaging.m function that shows how
-% the function should be used. As shown, you state which tiff file to run,
-% then get system and session information either via the functions
-% sysInfo.m and session2procInfo.m or manual addition. Run the
-% gcampImaging.m function afterwards and you are good to go!
+% John's data
 
 blockDur = 60; % seconds
+seedCoor = [84 23];
+stimTimeLim = [6 11];
 
 %% import packages
 
@@ -14,14 +12,14 @@ import mouse.*
 dataAvg = [];
 stimResponse = [];
 roi = [];
+vascular = [];
 
 for run = 1:3
     disp(num2str(run));
-    fileName = strcat("\\10.39.168.176\RawData_East3410\181004\181004-D16M2-stim",num2str(run),".tif");
-    saveFileName = strcat("D:\data\none\181004-D16M2-stim",num2str(run),"-hillmanMusp.mat");
-    maskFileName = 'D:\data\181004-D16M2-LandmarksandMask.mat';
+    fileName = strcat("\\10.39.168.176\RawData_East3410\190123\190123-212M1-stim",num2str(run),".tif");
+    saveFileName = strcat("D:\data\none\190123-212M1-stim",num2str(run),"-hillmanMusp.mat");
+    maskFileName = 'D:\data\none\190123-212M1-LandmarksandMask.mat';
     
-    maskData = load(maskFileName);
     %% get system or session information.
     
     % use the pre-existing system and session information by selecting the type
@@ -42,75 +40,108 @@ for run = 1:3
     sessionInfo.probeSpecies = [];
     sessionInfo.framerate = 20;
     sessionInfo.lowpass = sessionInfo.framerate./2-0.1;
-    sessionInfo.freqout = 1;
+    sessionInfo.freqout = 2;
     
     darkFrameInd = [];
     
-    %% get raw
-    
     if exist(saveFileName)
         disp('load processed');
-        load(saveFileName)
+        load(saveFileName);
     else
-        disp('get raw')
+        %% get raw
+        disp('get raw');
         speciesNum = systemInfo.numLEDs+1;
-        [raw, time] = read.readRaw(fileName,speciesNum,systemInfo.readFcn,systemInfo.invalidFrameInd,...
-            sessionInfo.framerate,sessionInfo.freqout);
+        [raw, time] = read.readRaw(fileName,speciesNum,systemInfo.readFcn,...
+            systemInfo.invalidFrameInd,sessionInfo.framerate,sessionInfo.freqout);
         raw = raw(:,:,1:4,:);
+        
+        disp('get mask');
+        if exist(maskFileName)
+            maskData = load(maskFileName);
+        else
+            rgbOrder = systemInfo.rgb;
+            wl = preprocess.getWL(raw,darkFrameInd,rgbOrder);
+            [isbrain, I] = preprocess.getLandmarksAndMask(wl);
+            maskData.isbrain = isbrain;
+            maskData.I = I;
+            
+            save(maskFileName,'isbrain','I','-v7.3');
+        end
         
         isbrain = logical(maskData.isbrain);
         affineMarkers = maskData.I;
         
         %% preprocess
-        disp('preprocess')
+        disp('preprocess');
         [time,data] = fluor.preprocess(time,raw,systemInfo,sessionInfo,affineMarkers,'darkFrameInd',darkFrameInd);
         xform_isbrain = preprocess.affineTransform(isbrain,affineMarkers);
         
         %% process
-        disp('process')
+        
+        disp('process');
         [xform_hb,xform_gcamp,xform_gcampCorr] = fluor.process(data,systemInfo,sessionInfo,xform_isbrain);
         
-        disp('save')
+        disp('save');
         save(saveFileName,'time','xform_hb','xform_gcamp','xform_gcampCorr','isbrain','xform_isbrain','affineMarkers','-v7.3');
     end
     
     %% gsr
-    disp('gsr')
+    disp('gsr');
+    
+%     % remove vascular data from mask
+%     xform_hbAvg = mouse.preprocess.blockAvg(xform_hb,time,blockDur,blockDur*sessionInfo.freqout);
+%     blockTime = linspace(0,blockDur,blockDur*sessionInfo.freqout+1); blockTime(1) = [];
+%     stimTime = (blockTime > stimTimeLim(1) & blockTime <= stimTimeLim(2));
+%     xform_hbStim = nanmean(xform_hbAvg(:,:,:,stimTime),4);
+%     roiMap = xform_hbStim(:,:,1);
+%     
+%     thrCandidate = false(size(roiMap));
+%     thrCandidate(21:108,61:68) = true;
+%     thr = 0.75*prctile(roiMap(thrCandidate),95);
+%     
+%     vascularCandidate = false(size(roiMap));
+%     vascularCandidate(11:118,51:78) = true;
+%     vascularRun = roiMap > thr;
+%     vascularRun = vascularRun & vascularCandidate;
+%     vascular = cat(3,vascularRun);
+%     
+%     xform_isbrain(vascularRun) = false;
+    
     xform_hb = mouse.preprocess.gsr(xform_hb,xform_isbrain);
     
     %% filter
-    disp('filter')
+    
     xform_hb = highpass(xform_hb,0.009,sessionInfo.freqout);
     xform_hb = lowpass(xform_hb,0.49,sessionInfo.freqout);
     
     %% get block avg
-    
-    xform_hb = cat(4,xform_hb(:,:,:,1),xform_hb);
-    
-    xform_hbAvg = mean(reshape(xform_hb,128,128,2,blockDur*sessionInfo.freqout,[]),5);
+    xform_hbAvg = mouse.preprocess.blockAvg(xform_hb,time,blockDur,blockDur*sessionInfo.freqout);
     blockTime = linspace(0,blockDur,blockDur*sessionInfo.freqout+1); blockTime(1) = [];
     
-    stimTime = (blockTime > 5 & blockTime <= 10);
+    stimTime = (blockTime > stimTimeLim(1) & blockTime <= stimTimeLim(2));
     xform_hbStim = nanmean(xform_hbAvg(:,:,:,stimTime),4);
     stimResponseRun = xform_hbStim;
     
     %% get fluor roi response
     % find the center coordinate of activation
-    roiMap = abs(xform_hbStim(:,:,1));
-    candidateCoor = mouse.plot.circleCoor([76 27],20);
-    candidateCoor = candidateCoor(1,:) + size(roiMap,1)*candidateCoor(2,:);
-    roiMapSub = zeros(size(roiMap)); roiMapSub(candidateCoor) = roiMap(candidateCoor);
+    roiMap = xform_hbStim(:,:,1);
+    peakCandidateCoor = mouse.plot.circleCoor(seedCoor,5);
+    peakCandidateCoor = peakCandidateCoor(1,:) + size(roiMap,1)*peakCandidateCoor(2,:);
+    roiMapSub = zeros(size(roiMap)); roiMapSub(peakCandidateCoor) = roiMap(peakCandidateCoor);
     centerCoor = find(roiMapSub == max(roiMapSub(:)));
     centerCoor = [mod(centerCoor-1,size(roiMap,1))+1, floor(centerCoor/size(roiMap,1))];
     
-    coor = mouse.plot.circleCoor(centerCoor,20);
-    coor = coor(1,:)+size(xform_hb,2)*coor(2,:);
+    thrCoor = mouse.plot.circleCoor(centerCoor,20);
+    thrCoor = thrCoor(1,:)+size(xform_hb,2)*thrCoor(2,:);
+    thrCoor(thrCoor < 1) = [];
+    
+    threshold = 0.75*prctile(roiMap(thrCoor),95);
+    
+    candidateCoor = mouse.plot.circleCoor(centerCoor,8);
+    candidateCoor = candidateCoor(1,:)+size(xform_hb,2)*candidateCoor(2,:);
+    candidateCoor(candidateCoor < 1) = [];
     inCoor = false(size(xform_hb,2));
-    inCoor(coor) = true;
-    
-    roiMap = abs(xform_hbStim(:,:,1));
-    threshold = 0.75*prctile(roiMap(coor),95);
-    
+    inCoor(candidateCoor) = true;
     roiCandidates = roiMap >= threshold;
     roiCandidates(~inCoor) = false;
     
@@ -136,8 +167,9 @@ for run = 1:3
     xform_hbRoiAvgBaseline = nanmean(xform_hbRoiAvgRun(:,1:floor(5*sessionInfo.freqout)),2);
     
     xform_hbRoiAvgRun = xform_hbRoiAvgRun - repmat(xform_hbRoiAvgBaseline,1,size(xform_hbRoiAvgRun,2));
-    
+        
     dataAvgRun = xform_hbRoiAvgRun;
+    
     roi = cat(3,roi,roiRun);
     dataAvg = cat(3,dataAvg,dataAvgRun);
     stimResponse = cat(4,stimResponse,stimResponseRun);
@@ -180,3 +212,7 @@ end
 i = 4;
 s4 = subplot(2,2,i);
 imagesc(mean(roi,3)); colormap(s4, 'parula'); axis(gca,'square'); xticklabels([]); yticklabels([]); colorbar;
+
+% i = 5;
+% s4 = subplot(3,2,i);
+% imagesc(mean(vascular,3)); colormap(s4, 'parula'); axis(gca,'square'); xticklabels([]); yticklabels([]); colorbar;

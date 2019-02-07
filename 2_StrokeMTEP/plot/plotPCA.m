@@ -54,12 +54,21 @@ gMap = gray(100);
 load('D:\data\StrokeMTEP\AtlasandIsbrain.mat');
 mask2 = symisbrainall;
 
-n = 1;
+% get infarct site
+centerCoor = [59 37];
+radius = [25 10];
+coor = mouse.plot.ovalCoor(centerCoor,radius);
+coorInd = coor(1,:) + (128*(coor(2,:)-1));
+infarctROI = false(128); infarctROI(coorInd) = true;
+color = [0.5 0.5 0.5];
+alpha = 0.5;
+
+pcaInd = 1;
 % z = mean(score(:,n)*coeff(:,n)'+mu(n),2);
 % z = score(:,n).*coeff(:,n);
-diff = coeff*score';
-z = diff*coeff(:,n)./sqrt(size(diff,1));
-cLim = [-0.3 0.3];
+z = -coeff(:,pcaInd);
+% diff = coeff*score';
+cLim = [-0.02 0.02];
 f2 = figure('Position',[50 650 600 300]);
 p = panel();
 p.pack('h', {0.80 []});
@@ -71,6 +80,8 @@ addColorBar = true;
 pcaVal = nan(128,128);
 pcaVal(idx_inv) = z;
 ax = mouse.plot.plotBrain(ax,pcaVal,mask2,cLim,cMap,addColorBar);
+ax = mouse.plot.plotCluster(ax,infarctROI,color,alpha);
+ax = mouse.plot.plotContour(ax,infarctROI,'k');
 
 f3 = figure('Position',[50 650 600 300]);
 p = panel();

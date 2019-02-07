@@ -1,27 +1,41 @@
 
 import mouse.*
 
-tiffFileName = ["J:\180713\180713-NewProbeM3W5Post.tif" ...
-    "J:\180713\180713-NewProbeM3W5Post_X2.tif" ...
-    "J:\180713\180713-NewProbeM3W5Post_X3.tif" ...
-    "J:\180713\180713-NewProbeM3W5Post_X4.tif"];
-saveFileName = "180713-NewProbeM3W5-Post-processed.mat";
-saveMaskFile = "180713-NewProbeM3W5-Post-mask.mat";
-saveDir = "D:\data\6-nbdg";
+% tiffFileName = ["J:\180713\180713-NewProbeM3W5Post.tif" ...
+%     "J:\180713\180713-NewProbeM3W5Post_X2.tif" ...
+%     "J:\180713\180713-NewProbeM3W5Post_X3.tif" ...
+%     "J:\180713\180713-NewProbeM3W5Post_X4.tif"];
+tiffFileName = ["\\10.39.168.176\RawData_East3410\181204\181204-ProbeW9M1-Post.tif"];
+saveFileName = "181204-ProbeW9M1-Post-processed.mat";
+saveMaskFile = "181204-ProbeW9M1-Post-mask.mat";
+saveFigPrefix = "181204-ProbeW9M1-Post-";
+saveDir = "D:\data\none";
 
 speciesNum = 4;
-systemInfo = mouse.expSpecific.sysInfo('fcOIS2_Fluor');
-sessionInfo = mouse.expSpecific.sesInfo('6-nbdg');
-sessionInfo.framerate = 16.8;
+systemInfo = mouse.expSpecific.sysInfo('EastOIS1_Fluor');
+sessionInfo = mouse.expSpecific.sesInfo('none');
+sessionInfo.detrendSpatially = true;
+sessionInfo.detrendTemporally = true;
+sessionInfo.framerate = 5;
 sessionInfo.freqout = 2;
 
-darkFrameInd = [];
+darkFrameInd = 1:20;
 
 blockDuration = 60; % time per block in seconds.
-stimTimeLim = [5 10]; % stimulation period within the block.
 % 1st value is start of stim, 2nd value is end of stim.
+stimTimeLim = [5 10]; % stimulation period within the block.
+stimStdThr = 2.5;
+stimPixNum = 60;
+
+stimRegion = false(128);
+stimRegion(50:100,80:128) = true;
 
 centerCoor = [80 103];
+
+readInfo.speciesNum = 4;
+invalidInd = systemInfo.invalidFrameInd;
+timeFrameNum = inf;
+readFcnHandle = systemInfo.readFcn;
 
 %% load and process data if not done already
 
@@ -31,8 +45,8 @@ if ~exist(fullfile(saveDir,saveFileName))
     
     disp('get raw data');
     
-    [raw, rawTime] = read.readRaw(tiffFileName,speciesNum,systemInfo.readFcn,...
-        sessionInfo.framerate,sessionInfo.freqout);
+    [raw, rawTime] = read.readRaw(tiffFileName,readFcnHandle,readInfo,...
+        invalidInd,timeFrameNum,sessionInfo.framerate,sessionInfo.freqout);
     
     if ~exist(saveMaskFile)
         rgbOrder = systemInfo.rgb;
@@ -70,17 +84,32 @@ xform_hb = mouse.preprocess.gsr(xform_hb,xform_isbrain);
 xform_gcamp = mouse.preprocess.gsr(xform_gcamp,xform_isbrain);
 xform_gcampCorr = mouse.preprocess.gsr(xform_gcampCorr,xform_isbrain);
 
+%% remove bad blocks
+
+validBlock = true(20,1);
+validBlock([1 11 17]) = false;
+
+blockFrameNum = blockDuration*sessionInfo.freqout;
+blockNum = size(xform_hb,4)/blockFrameNum;
+for blockInd = 1:blockNum
+    blockFrames = (blockInd-1)*blockFrameNum+1:blockInd*blockFrameNum;
+    
+    if ~validBlock(blockInd)
+        xform_hb(:,:,:,blockFrames) = [];
+        xform_gcamp(:,:,:,blockFrames) = [];
+end
+
 %% get block avg
 
 disp('get block average');
 
 xform_hbBlock = mouse.preprocess.blockAvg(xform_hb,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
+    blockDuration,blockFrameNum);
 xform_probeBlock = mouse.preprocess.blockAvg(xform_gcamp,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
+    blockDuration,blockFrameNum);
 xform_probeCorrBlock = mouse.preprocess.blockAvg(xform_gcampCorr,time,...
-    blockDuration,blockDuration*sessionInfo.freqout);
-blockTime = linspace(0,blockDuration,blockDuration*sessionInfo.freqout+1); blockTime(1) = [];
+    blockDuration,blockFrameNum);
+blockTime = linspace(0,blockDuration,blockFrameNum+1); blockTime(1) = [];
 
 %% plot raw
 figure;
@@ -127,8 +156,9 @@ end
 roiMap = xform_hbStim(:,:,1);
 
 % find coordinates above the threshold
-coor = mouse.plot.circleCoor(centerCoor,20);
-coor = coor(1,:)+size(xform_hb,2)*coor(2,:);
+% coor = mouse.plot.circleCoor(centerCoor,20);
+% coor = coor(1,:)+size(xform_hb,2)*coor(2,:);
+coor = stimRegion;
 inCoor = false(size(xform_hb,2));
 inCoor(coor) = true;
 threshold = 0.75*prctile(roiMap(coor),95);
@@ -221,10 +251,11 @@ xform_probeCorrRoiBlock = xform_probeCorrRoiBlock - repmat(xform_probeCorrRoiAvg
 %% plot fluor roi response
 
 figure;
-plot(blockTime,1000*xform_hbRoiBlock(1,:),'r'); hold on;
-plot(blockTime,1000*xform_hbRoiBlock(2,:),'b');
-plot(blockTime,1000*(xform_hbRoiBlock(1,:)+xform_hbRoiBlock(2,:)),'k');
-plot(blockTime,xform_probeRoiBlock,'g');
-plot(blockTime,xform_probeCorrRoiBlock,'m');
-legend('HbO (mM)','HbR (mM)','HbT (mM)','fluor','fluor corrected');
-ylim([-0.01 0.02]);
+plot(blockTime,zeros(size(blockTime)),'k--'); hold on;
+p1 = plot(blockTime,1000*xform_hbRoiBlock(1,:),'r');
+p2 = plot(blockTime,1000*xform_hbRoiBlock(2,:),'b');
+p3 = plot(blockTime,1000*(xform_hbRoiBlock(1,:)+xform_hbRoiBlock(2,:)),'k');
+p4 = plot(blockTime,xform_probeRoiBlock,'g');
+p5 = plot(blockTime,xform_probeCorrRoiBlock,'m');
+legend([p1 p2 p3 p4 p5],["HbO (mM)" "HbR (mM)" "HbT (mM)" "fluor" "fluor corrected"]);
+ylim([-0.015 0.007]);
