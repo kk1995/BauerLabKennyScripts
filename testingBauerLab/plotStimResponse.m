@@ -119,10 +119,10 @@ for trialInd = 1:trialNum
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT');
     
     if species2Plot > 3
-        subplot(1,species2Plot,4); imagesc(sum(stimResponseTrial(:,:,3),3),[-1E-2 1E-2]);
+        subplot(1,species2Plot,4); imagesc(sum(stimResponseTrial(:,:,3),3),[-0.5E-2 0.5E-2]);
         colormap('jet'); colorbar; axis(gca,'square');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor');
-        subplot(1,species2Plot,5); imagesc(sum(stimResponseTrial(:,:,4),3),[-1E-2 1E-2]);
+        subplot(1,species2Plot,5); imagesc(sum(stimResponseTrial(:,:,4),3),[-0.5E-2 0.5E-2]);
         colormap('jet'); colorbar; axis(gca,'square');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
     end
@@ -226,10 +226,10 @@ subplot(1,species2Plot,3); imagesc(1E3*sum(stimResponseAvg(:,:,1:2),3),[-1E-3 1E
 colormap('jet'); colorbar; axis(gca,'square');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT');
 if species2Plot > 3
-    subplot(1,species2Plot,4); imagesc(sum(stimResponseAvg(:,:,3),3),[-1E-2 1E-2]);
+    subplot(1,species2Plot,4); imagesc(sum(stimResponseAvg(:,:,3),3),[-0.5E-2 0.5E-2]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
-    subplot(1,species2Plot,5); imagesc(sum(stimResponseAvg(:,:,4),3),[-1E-2 1E-2]);
+    subplot(1,species2Plot,5); imagesc(sum(stimResponseAvg(:,:,4),3),[-0.5E-2 0.5E-2]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
 end

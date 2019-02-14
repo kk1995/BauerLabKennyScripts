@@ -1,4 +1,4 @@
-function fluorImagingZach(excelFile,rows)
+function probeImaging(excelFile,rows)
 
 % this script is a wrapper around fluor package that shows how
 % the package should be used. As shown, you feed an excel file with file locations,
@@ -26,20 +26,23 @@ paramPath = what('bauerParams');
 hbLoc = fullfile(paramPath.path,'ledSpectra');
 fluorLoc = fullfile(paramPath.path,'probeSpectra');
 extCoeffFile = fullfile(paramPath.path,'prahl_extinct_coef.txt');
-fluorEmissionFile = string(fullfile(fluorLoc,'gcamp6f_emission.txt'));
+fluorEmissionFile = string(fullfile(fluorLoc,'6-nbdg_emission.txt'));
 rgbOrder = [4 2 NaN];
 speciesNum = 4; % reader parameter. how many species in image file?
 hbSpecies = 2:4;
 fluorSpecies = 1;
 invalidFrameInd = 1;
 darkFrameInd = [];
-fluorDetrend = true;
+fluorDetrend = false;
 hbDetrend = true;
-muspFcn = @(x) 10;
+muspFcn = @(x) (40*(x/500).^-1.16);
+% muspFcn = @(x) 10;
 ledFiles = ["150917_TL_470nm_Pol.txt",...
         "150917_Mtex_530nm_Pol.txt",...
         "150917_TL_590nm_Pol.txt"...
         "150917_TL_628nm_Pol.txt"];
+% last 10% data is seen as baseline
+fluorBaselineFcn = @(x) mean(x(:,:,:,round(0.9*size(x,4)+1):size(x,4)),4);
 
 %% run wl generation for each trial
 disp('get wl image and mask');
@@ -164,8 +167,10 @@ for trial = 1:trialNum
     fluorProc.OpticalPropertyOut = fluorOutOP;
     fluorProc.Detrend = fluorDetrend;
     fluorProc.AffineMarkers = mask.I;
+    fluorProc.BaselineFunction = fluorBaselineFcn;
     
-    [rawTime,xform_datahb,xform_datafluor,xform_datafluorCorr] = hbAndOneFluor(fileNames,reader,...
+    [rawTime,xform_datahb,xform_datafluor,xform_datafluorCorr,xform_baseline] = ...
+        hbAndOneFluor(fileNames,reader,...
     hbProc,fluorProc,hbSpecies,fluorSpecies);
     
     % save processed data
@@ -177,7 +182,7 @@ for trial = 1:trialNum
     
     fluorFileName = strcat(saveFileDataPrefix,"-dataFluor.mat");
     save(fluorFileName,'fileNames','reader','fluorProc','fluorSpecies','rawTime','xform_datafluor',...
-        'xform_datafluorCorr','-v7.3');
+        'xform_datafluorCorr','xform_baseline','-v7.3');
 end
 
 end

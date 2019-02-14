@@ -86,12 +86,12 @@ for trialInd = 1:trialNum
         xform_datafluorCorr = fluordata.xform_datafluorCorr;
     end
     
-    fs = fluordata.sessionInfo.freqout;
+    fs = fluordata.reader.FreqOut;
     time = fluordata.rawTime;
     
     % gsr
-    xform_datahb = preprocess.gsr(xform_datahb,mask.xform_isbrain);
-    xform_datafluorCorr = preprocess.gsr(xform_datafluorCorr,mask.xform_isbrain);
+%     xform_datahb = preprocess.gsr(xform_datahb,mask.xform_isbrain);
+%     xform_datafluorCorr = preprocess.gsr(xform_datafluorCorr,mask.xform_isbrain);
     
     % filtering
     if ~isempty(parameters.highpass)
