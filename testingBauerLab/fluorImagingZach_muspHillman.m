@@ -35,7 +35,8 @@ invalidFrameInd = 1;
 darkFrameInd = [];
 fluorDetrend = true;
 hbDetrend = true;
-muspFcn = @(x) (40*(x/500).^-1.16);
+% muspFcn = @(x) (40*(x/500).^-1.16);
+muspFcn = @(x,y) (40*(x/500).^-1.16)'*y;
 ledFiles = ["150917_TL_470nm_Pol.txt",...
         "150917_Mtex_530nm_Pol.txt",...
         "150917_TL_590nm_Pol.txt"...
