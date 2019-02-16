@@ -81,7 +81,7 @@ for trial = 1:trialNum
     % create the white light image and mask file if it does not exist
     if ~exist(maskFileName)
         
-        [isbrain,xform_isbrain,I] = getMask(fileNames,reader,rgbOrder);
+        [isbrain,xform_isbrain,I,WL] = getMask(fileNames,reader,rgbOrder);
         
         % save white light image and mask
         if ~exist(saveFileLoc)
