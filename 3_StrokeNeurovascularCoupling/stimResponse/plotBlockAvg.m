@@ -1,9 +1,6 @@
 rootDir = 'D:\data\zachRosenthal\_stim';
 
-week = 1;
-if week == 1
-    weekChar = 'baseline';
-end
+weekChar = 'baseline';
 
 dataDir = fullfile(rootDir,[weekChar '_blockAvg']);
 fileList = dir(dataDir); fileList(1:2) = [];
@@ -55,8 +52,11 @@ gcamp6corrBlockVect = reshape(gcamp6corrBlock,size(gcamp6corrBlock,1)*size(gcamp
 t = linspace(0,20,size(oxyBlockVect,3)+1); t(1) = [];
 
 oxyAvg = squeeze(nanmean(oxyBlockVect(roi,1,:),1));
+oxyAvg = oxyAvg - mean(oxyAvg(t<5));
 deoxyAvg = squeeze(nanmean(deoxyBlockVect(roi,1,:),1));
+deoxyAvg = deoxyAvg - mean(deoxyAvg(t<5));
 gcamp6corrAvg = squeeze(nanmean(gcamp6corrBlockVect(roi,1,:),1));
+gcamp6corrAvg = gcamp6corrAvg - mean(gcamp6corrAvg(t<5));
 
 %% plot time course
 

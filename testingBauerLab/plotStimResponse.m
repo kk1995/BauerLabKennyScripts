@@ -17,6 +17,9 @@ else
     blockDesign.expectedLoc = [82 100];
 end
 
+hbColorLim = 2E-3;
+fluorColorLim = 1E-2;
+
 %% import packages
 
 import mouse.*
@@ -59,6 +62,7 @@ roiData = [];
 blockData = [];
 
 for trialInd = 1:trialNum
+    disp(['Trial # ' num2str(trialInd)]);
     hbdata = load(hbFiles(trialInd));
     mask = load(maskFiles(trialInd));
     
@@ -108,21 +112,21 @@ for trialInd = 1:trialNum
     species2Plot = size(stimResponseTrial,3) + 1;
     
     stimResponseFig = figure('Position',[200 200 200*species2Plot 300]);
-    subplot(1,species2Plot,1); imagesc(1E3*stimResponseTrial(:,:,1),[-1E-3 1E-3]);
+    subplot(1,species2Plot,1); imagesc(1E3*stimResponseTrial(:,:,1),[-hbColorLim hbColorLim]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbO');
-    subplot(1,species2Plot,2); imagesc(1E3*stimResponseTrial(:,:,2),[-1E-3 1E-3]);
+    subplot(1,species2Plot,2); imagesc(1E3*stimResponseTrial(:,:,2),[-hbColorLim hbColorLim]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbR');
-    subplot(1,species2Plot,3); imagesc(1E3*sum(stimResponseTrial(:,:,1:2),3),[-1E-3 1E-3]);
+    subplot(1,species2Plot,3); imagesc(1E3*sum(stimResponseTrial(:,:,1:2),3),[-hbColorLim hbColorLim]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT');
     
     if species2Plot > 3
-        subplot(1,species2Plot,4); imagesc(sum(stimResponseTrial(:,:,3),3),[-0.5E-2 0.5E-2]);
+        subplot(1,species2Plot,4); imagesc(sum(stimResponseTrial(:,:,3),3),[-fluorColorLim fluorColorLim]);
         colormap('jet'); colorbar; axis(gca,'square');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor');
-        subplot(1,species2Plot,5); imagesc(sum(stimResponseTrial(:,:,4),3),[-0.5E-2 0.5E-2]);
+        subplot(1,species2Plot,5); imagesc(sum(stimResponseTrial(:,:,4),3),[-fluorColorLim fluorColorLim]);
         colormap('jet'); colorbar; axis(gca,'square');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
     end
@@ -143,16 +147,16 @@ for trialInd = 1:trialNum
     
     centerCoor = blockDesign.expectedLoc;
     roiMap = abs(stimResponseTrial(:,:,1));
-    candidateCoor = mouse.plot.circleCoor(centerCoor,5);
-    candidateCoor = candidateCoor(1,:) + size(roiMap,1)*(candidateCoor(2,:)-1);
+    candidateCoor = mouse.math.circleCoor(centerCoor,5);
+    candidateCoor = mouse.math.matCoor2Ind(candidateCoor,[128 128]);
     roiMapSub = zeros(size(roiMap)); roiMapSub(candidateCoor) = roiMap(candidateCoor);
     centerCoor = find(roiMapSub == max(roiMapSub(:)));
     centerCoor = [mod(centerCoor-1,size(roiMap,1))+1, floor(centerCoor/size(roiMap,1))];
     
-    coor = mouse.plot.circleCoor(centerCoor,10);
+    coor = mouse.math.circleCoor(centerCoor,10);
     coor(:,coor(1,:) < 1) = [];
     coor(:,coor(2,:) < 1) = [];
-    coor = coor(1,:)+size(roiMap,2)*coor(2,:);
+    coor = mouse.math.matCoor2Ind(coor,[128 128]);
     inCoor = false(size(roiMap,2));
     inCoor(coor) = true;
     
@@ -166,9 +170,9 @@ for trialInd = 1:trialNum
     for clusterInd = 1:clusters.NumObjects
         clusterSizes(clusterInd) = numel(clusters.PixelIdxList{clusterInd});
     end
-    maxClusterSize = max(clusterSizes);
+    maxClusterInd = find(max(clusterSizes)==clusterSizes,1,'first');
     roiTrial = false(size(roiCandidates));
-    roiTrial(clusters.PixelIdxList{clusterSizes==maxClusterSize}) = true;
+    roiTrial(clusters.PixelIdxList{maxClusterInd}) = true;
     
     % get roi response
     [blockDataTrial, blockTime] = preprocess.blockAvg(totalData,time,blockDur,blockDur*fs);
@@ -216,20 +220,20 @@ end
 stimResponseAvg = mean(stimResponse,4);
 
 stimResponseFig = figure('Position',[200 200 200*species2Plot 300]);
-subplot(1,species2Plot,1); imagesc(1E3*stimResponseAvg(:,:,1),[-1E-3 1E-3]);
+subplot(1,species2Plot,1); imagesc(1E3*stimResponseAvg(:,:,1),[-hbColorLim hbColorLim]);
 colormap('jet'); colorbar; axis(gca,'square');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbO');
-subplot(1,species2Plot,2); imagesc(1E3*stimResponseAvg(:,:,2),[-1E-3 1E-3]);
+subplot(1,species2Plot,2); imagesc(1E3*stimResponseAvg(:,:,2),[-hbColorLim hbColorLim]);
 colormap('jet'); colorbar; axis(gca,'square');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbR');
-subplot(1,species2Plot,3); imagesc(1E3*sum(stimResponseAvg(:,:,1:2),3),[-1E-3 1E-3]);
+subplot(1,species2Plot,3); imagesc(1E3*sum(stimResponseAvg(:,:,1:2),3),[-hbColorLim hbColorLim]);
 colormap('jet'); colorbar; axis(gca,'square');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT');
 if species2Plot > 3
-    subplot(1,species2Plot,4); imagesc(sum(stimResponseAvg(:,:,3),3),[-0.5E-2 0.5E-2]);
+    subplot(1,species2Plot,4); imagesc(sum(stimResponseAvg(:,:,3),3),[-fluorColorLim fluorColorLim]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
-    subplot(1,species2Plot,5); imagesc(sum(stimResponseAvg(:,:,4),3),[-0.5E-2 0.5E-2]);
+    subplot(1,species2Plot,5); imagesc(sum(stimResponseAvg(:,:,4),3),[-fluorColorLim fluorColorLim]);
     colormap('jet'); colorbar; axis(gca,'square');
     set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor corr');
 end
@@ -281,7 +285,7 @@ blockDataAvg = mean(blockData,5);
 f1 = figure('Position',[200 200 1000 ceil(blockDur/10)*150]);
 for i = 1:blockDur
     subplot(ceil(blockDur/10),10,i);
-    imagesc(squeeze(blockDataAvg(:,:,1,i)),[-1E-6 1E-6]); colormap('jet');
+    imagesc(1000*squeeze(blockDataAvg(:,:,1,i)),[-hbColorLim hbColorLim]); colormap('jet');
     axis(gca,'square'); set(gca,'XTick',[]); set(gca,'YTick',[]);
     if i == blockDur
         colorbar;
@@ -294,20 +298,22 @@ blockAvgFile = fullfile(saveFileLoc,...
 savefig(f1,blockAvgFile);
 close(f1);
 
-f1 = figure('Position',[200 200 1000 ceil(blockDur/10)*150]);
-for i = 1:blockDur
-    subplot(ceil(blockDur/10),10,i);
-    imagesc(squeeze(blockDataAvg(:,:,4,i)),[-0.5E-2 0.5E-2]); colormap('jet');
-    axis(gca,'square'); set(gca,'XTick',[]); set(gca,'YTick',[]);
-    if i == blockDur
-        colorbar;
+if size(blockDataAvg,3) > 2
+    f1 = figure('Position',[200 200 1000 ceil(blockDur/10)*150]);
+    for i = 1:blockDur
+        subplot(ceil(blockDur/10),10,i);
+        imagesc(squeeze(blockDataAvg(:,:,4,i)),[-fluorColorLim fluorColorLim]); colormap('jet');
+        axis(gca,'square'); set(gca,'XTick',[]); set(gca,'YTick',[]);
+        if i == blockDur
+            colorbar;
+        end
     end
+    blockAvgFile = fullfile(saveFileLoc,...
+        strcat(string(excelFileName),"-rows",num2str(min(rows)),...
+        "~",num2str(max(rows)),"-blockAvgFluorCorr.fig"));
+    
+    savefig(f1,blockAvgFile);
+    close(f1);
 end
-blockAvgFile = fullfile(saveFileLoc,...
-   strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-blockAvgFluorCorr.fig"));
-
-savefig(f1,blockAvgFile);
-close(f1);
 
 end

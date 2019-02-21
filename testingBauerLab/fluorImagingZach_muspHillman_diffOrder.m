@@ -1,4 +1,4 @@
-function fluorImagingZach_muspHillman(excelFile,rows)
+function fluorImagingZach_muspHillman_diffOrder(excelFile,rows)
 
 % this script is a wrapper around fluor package that shows how
 % the package should be used. As shown, you feed an excel file with file locations,
@@ -35,8 +35,8 @@ invalidFrameInd = 1;
 darkFrameInd = [];
 fluorDetrend = true;
 hbDetrend = true;
-% muspFcn = @(x) (40*(x/500).^-1.16);
-muspFcn = @(x,y) (40*(x/500).^-1.16)'*y;
+muspFcn = @(x) (40*(x/500).^-1.16);
+% muspFcn = @(x,y) (40*(x/500).^-1.16)'*y;
 ledFiles = ["150917_TL_470nm_Pol.txt",...
         "150917_Mtex_530nm_Pol.txt",...
         "150917_TL_590nm_Pol.txt"...
@@ -154,13 +154,13 @@ for trial = 1:trialNum
     reader.FreqOut = procSamplingRate;
     reader.TimeFrames = [];
     
-    hbProc = process.HbProcessor();
+    hbProc = HbProcessor();
     hbProc.OpticalProperty = hbOP;
     hbProc.Mask = mask.xform_isbrain;
     hbProc.Detrend = hbDetrend;
     hbProc.AffineMarkers = mask.I;
     
-    fluorProc = process.FluorProcessor();
+    fluorProc = FluorProcessor();
     fluorProc.OpticalPropertyIn = fluorInOP;
     fluorProc.OpticalPropertyOut = fluorOutOP;
     fluorProc.Detrend = fluorDetrend;

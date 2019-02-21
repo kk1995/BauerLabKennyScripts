@@ -8,11 +8,15 @@ function analyzeLag(excelFile,rows,varargin)
 if numel(varargin) > 0
     parameters = varargin{1};
 else
-    parameters.lowpass = 0.03; %1/30 Hz
-    parameters.highpass = [];
+    parameters.lowpass = 0.5; %1/30 Hz
+    parameters.highpass = 0.009;
 end
 
-blockDesign.expectedLoc = [82 100];
+freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass)];
+freqStr(strfind(freqStr,'.')) = 'p';
+freqStr = string(freqStr);
+
+tLim = 1.5;
 
 edgeLen = 3;
 tZone = 2;
@@ -54,89 +58,86 @@ end
 
 %% load each file and find block response
 
-dotLagTimeTotal = [];
-dotLagAmpTotal = [];
+saveFileLoc = fileparts(saveFileLocs(1));
+[~,excelFileName,~] = fileparts(excelFile);
+lagFile = fullfile(saveFileLoc,...
+    strcat(string(excelFileName),"-rows",num2str(min(rows)),...
+    "~",num2str(max(rows)),"-dotLagHbTG6-",freqStr,".mat"));
 
-for trialInd = 1:trialNum
-    disp(['Trial # ' num2str(trialInd)]);
-    mask = load(maskFiles(trialInd));
-    
-    hbdata = load(hbFiles(trialInd));
-    fluordata = load(fluorFiles(trialInd));
-    try
-        xform_datahb = hbdata.data_hb;
-    catch
-        xform_datahb = hbdata.xform_datahb;
+lagTime = [];
+lagAmp = [];
+mask = [];
+
+if exist(lagFile)
+    load(lagFile);
+else
+    for trialInd = 1:trialNum
+        disp(['Trial # ' num2str(trialInd)]);
+        maskTrial = load(maskFiles(trialInd));
+        maskTrial = maskTrial.xform_isbrain;
+        mask = cat(3,mask,maskTrial);
+        
+        hbdata = load(hbFiles(trialInd));
+        fluordata = load(fluorFiles(trialInd));
+        try
+            xform_datahb = hbdata.data_hb;
+        catch
+            xform_datahb = hbdata.xform_datahb;
+        end
+        try
+            xform_datafluorCorr = fluordata.data_fluorCorr;
+        catch
+            xform_datafluorCorr = fluordata.xform_datafluorCorr;
+        end
+        
+        fs = fluordata.reader.FreqOut;
+        time = fluordata.rawTime;
+        
+        % filtering
+        if ~isempty(parameters.highpass)
+            xform_datahb = highpass(xform_datahb,parameters.highpass,fs);
+            xform_datafluorCorr = highpass(xform_datafluorCorr,parameters.highpass,fs);
+        end
+        if ~isempty(parameters.lowpass)
+            xform_datahb = lowpass(xform_datahb,parameters.lowpass,fs);
+            xform_datafluorCorr = lowpass(xform_datafluorCorr,parameters.lowpass,fs);
+        end
+        
+        data1 = squeeze(sum(xform_datahb,3));
+        data2 = squeeze(xform_datafluorCorr);
+        [lagTimeTrial,lagAmpTrial,~] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
+        lagTimeTrial = lagTimeTrial./fs;
+        
+        % plot lag
+        dotLagFig = figure('Position',[100 100 900 400]);
+        p = panel();
+        p.pack();
+        p(1).pack(1,2);
+        p(1,1,1).select(); imagesc(lagTimeTrial,'AlphaData',maskTrial,[-tLim tLim]); axis(gca,'square');
+        xlim([1 size(lagTimeTrial,1)]); ylim([1 size(lagTimeTrial,2)]);
+        set(gca,'ydir','reverse'); colorbar; colormap('jet');
+        set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
+        p(1,1,2).select(); imagesc(lagAmpTrial,'AlphaData',maskTrial,[0.3 1]); axis(gca,'square');
+        xlim([1 size(lagAmpTrial,1)]); ylim([1 size(lagAmpTrial,2)]);
+        set(gca,'ydir','reverse'); colorbar; colormap('jet');
+        set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
+        
+        % save lag data
+        dotLagFile = fullfile(saveFileLocs(trialInd),...
+            strcat(saveFileDataNames(trialInd),"-dotLagHbTG6-",freqStr,".mat"));
+        save(dotLagFile,'lagTimeTrial','lagAmpTrial','tZone','corrThr','edgeLen');
+        
+        % save lag figure
+        dotLagFigFile = fullfile(saveFileLocs(trialInd),...
+            strcat(saveFileDataNames(trialInd),"-dotLagHbTG6-",freqStr,".fig"));
+        savefig(dotLagFig,dotLagFigFile);
+        close(dotLagFig);
+        
+        lagTime = cat(3,lagTime,lagTimeTrial);
+        lagAmp = cat(3,lagAmp,lagAmpTrial);
     end
-    try
-        xform_datafluorCorr = fluordata.data_fluorCorr;
-    catch
-        xform_datafluorCorr = fluordata.xform_datafluorCorr;
-    end
-    
-    fs = fluordata.reader.FreqOut;
-    time = fluordata.rawTime;
-    
-    % filtering
-    if ~isempty(parameters.highpass)
-        xform_datahb = highpass(xform_datahb,parameters.highpass,fs);
-        xform_datafluorCorr = highpass(xform_datafluorCorr,parameters.highpass,fs);
-    end
-    if ~isempty(parameters.lowpass)
-        xform_datahb = lowpass(xform_datahb,parameters.lowpass,fs);
-        xform_datafluorCorr = lowpass(xform_datafluorCorr,parameters.lowpass,fs);
-    end
-    
-    data1 = squeeze(xform_datahb(:,:,1,:));
-    data2 = squeeze(xform_datafluorCorr);
-    [lagTime,lagAmp,~] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
-    lagTime = lagTime./fs;
-    
-    % plot lag
-    dotLagFig = figure('Position',[100 100 900 400]);
-    p = panel();
-    p.pack();
-    p(1).pack(1,2);
-    p(1,1,1).select(); imagesc(lagTime,[-tZone*0.6 tZone*0.6]); axis(gca,'square');
-    xlim([1 size(lagTime,1)]); ylim([1 size(lagTime,2)]);
-    set(gca,'ydir','reverse'); colorbar;
-    set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
-    p(1,1,2).select(); imagesc(lagAmp,[0.3 1]); axis(gca,'square');
-    xlim([1 size(lagAmp,1)]); ylim([1 size(lagAmp,2)]);
-    set(gca,'ydir','reverse'); colorbar;
-    set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
-     
     % save lag data
-    dotLagFile = fullfile(saveFileLocs(trialInd),...
-        strcat(saveFileDataNames(trialInd),"-dotLagHbOG6.mat"));
-    save(dotLagFile,'lagTime','lagAmp','tZone','corrThr','edgeLen');
-    
-    % save lag figure
-    dotLagFigFile = fullfile(saveFileLocs(trialInd),...
-        strcat(saveFileDataNames(trialInd),"-dotLagHbOG6.fig"));
-    savefig(dotLagFig,dotLagFigFile);
-    close(dotLagFig);
-    
-    dotLagTimeTotal = cat(3,dotLagTimeTotal,lagTime);
-    dotLagAmpTotal = cat(3,dotLagAmpTotal,lagAmp);
-    
-    % gs lag
-    data = squeeze(xform_datahb(:,:,1,:));
-    [lagTime,lagAmp,~] = mouse.conn.gsLag(data,mask.xform_isbrain,edgeLen,round(tZone*fs),corrThr);
-    
-    % save lag data
-    gsLagFile = fullfile(saveFileLocs(trialInd),...
-        strcat(saveFileDataNames(trialInd),"-gsLagHbO.mat"));
-    save(gsLagFile,'lagTime','lagAmp','mask','tZone','corrThr','edgeLen');
-    
-    % gs lag gcamp
-    data = squeeze(xform_datafluorCorr);
-    [lagTime,lagAmp,~] = mouse.conn.gsLag(data,mask.xform_isbrain,edgeLen,round(tZone*fs),corrThr);
-    
-    % save lag data
-    gsLagFile = fullfile(saveFileLocs(trialInd),...
-        strcat(saveFileDataNames(trialInd),"-gsLagG6.mat"));
-    save(gsLagFile,'lagTime','lagAmp','mask','tZone','corrThr','edgeLen');
+    save(lagFile,'lagTime','lagAmp','mask','tZone','corrThr','edgeLen');
 end
 
 %% plot average across trials
@@ -149,19 +150,19 @@ dotLagFig = figure('Position',[100 100 900 400]);
 p = panel();
 p.pack();
 p(1).pack(1,2);
-p(1,1,1).select(); imagesc(nanmean(dotLagTimeTotal,3),[-tZone*0.6 tZone*0.6]); axis(gca,'square');
-xlim([1 size(dotLagTimeTotal,1)]); ylim([1 size(dotLagTimeTotal,2)]);
-set(gca,'ydir','reverse'); colorbar;
+p(1,1,1).select(); imagesc(nanmean(lagTime,3),'AlphaData',nanmean(mask,3),[-tLim tLim]); axis(gca,'square');
+xlim([1 size(lagTime,1)]); ylim([1 size(lagTime,2)]);
+set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
-p(1,1,2).select(); imagesc(nanmean(dotLagAmpTotal,3),[0.3 1]); axis(gca,'square');
-xlim([1 size(dotLagAmpTotal,1)]); ylim([1 size(dotLagAmpTotal,2)]);
-set(gca,'ydir','reverse'); colorbar;
+p(1,1,2).select(); imagesc(nanmean(lagAmp,3),[0.3 1]); axis(gca,'square');
+xlim([1 size(lagAmp,1)]); ylim([1 size(lagAmp,2)]);
+set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
 
 % save lag figure
 dotLagFigFile = fullfile(saveFileLoc,...
     strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-dotLagHbOG6.fig"));
+    "~",num2str(max(rows)),"-dotLagHbTG6-",freqStr,".fig"));
 savefig(dotLagFig,dotLagFigFile);
 close(dotLagFig);
 
