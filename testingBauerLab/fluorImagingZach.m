@@ -155,7 +155,7 @@ for trial = 1:trialNum
     
     hbProc = HbProcessor();
     hbProc.OpticalProperty = hbOP;
-    hbProc.Mask = mask.xform_isbrain;
+    hbProc.Mask = mask.isbrain;
     hbProc.Detrend = hbDetrend;
     hbProc.AffineMarkers = mask.I;
     
@@ -166,17 +166,23 @@ for trial = 1:trialNum
     fluorProc.AffineMarkers = mask.I;
     
     [rawTime,xform_datahb,xform_datafluor,xform_datafluorCorr] = hbAndOneFluor(fileNames,reader,...
-    hbProc,fluorProc,hbSpecies,fluorSpecies);
+        hbProc,fluorProc,hbSpecies,fluorSpecies);
+    
+    warning('off','all')
+    readerInfo = struct(reader);
+    hbProcInfo = struct(hbProc);
+    fluorProcInfo = struct(fluorProc);
+    warning('on','all')
     
     % save processed data
     if ~exist(saveFileLoc)
         mkdir(saveFileLoc);
     end
     hbFileName = strcat(saveFileDataPrefix,"-datahb.mat");
-    save(hbFileName,'fileNames','reader','hbProc','hbSpecies','rawTime','xform_datahb','-v7.3');
+    save(hbFileName,'fileNames','readerInfo','hbProcInfo','hbSpecies','rawTime','xform_datahb','-v7.3');
     
     fluorFileName = strcat(saveFileDataPrefix,"-dataFluor.mat");
-    save(fluorFileName,'fileNames','reader','fluorProc','fluorSpecies','rawTime','xform_datafluor',...
+    save(fluorFileName,'fileNames','readerInfo','fluorProcInfo','fluorSpecies','rawTime','xform_datafluor',...
         'xform_datafluorCorr','-v7.3');
 end
 

@@ -19,7 +19,7 @@ freqStr = string(freqStr);
 if parameters.highpass < 0.5
     tLim = 0.25;
 else
-    tLim = 0.006;
+    tLim = 0.05;
 end
 
 edgeLen = 3;
@@ -97,7 +97,7 @@ else
             xform_datafluorCorr = fluordata.xform_datafluorCorr;
         end
         
-        fs = fluordata.reader.FreqOut;
+        fs = fluordata.readerInfo.FreqOut;
         %     time = fluordata.rawTime;
         
         % filtering
@@ -120,9 +120,9 @@ else
         lagAmpHbT(:,:,trialInd) = lagAmpHbTTrial;
         
         % save lag data
-        lagFile = fullfile(saveFileLocs(trialInd),...
+        lagFileTrial = fullfile(saveFileLocs(trialInd),...
             strcat(saveFileDataNames(trialInd),"-biLagHbT-",freqStr,".mat"));
-        save(lagFile,'lagTimeHbTTrial','lagAmpHbTTrial','maskTrial','tZone','corrThr','edgeLen');
+        save(lagFileTrial,'lagTimeHbTTrial','lagAmpHbTTrial','maskTrial','tZone','corrThr','edgeLen');
         
         % gs lag gcamp
         data = squeeze(xform_datafluorCorr);
@@ -134,9 +134,9 @@ else
         lagAmpG6(:,:,trialInd) = lagAmpG6Trial;
         
         % save lag data
-        lagFile = fullfile(saveFileLocs(trialInd),...
+        lagFileTrial = fullfile(saveFileLocs(trialInd),...
             strcat(saveFileDataNames(trialInd),"-biLagG6-",freqStr,".mat"));
-        save(lagFile,'lagTimeG6Trial','lagAmpG6Trial','maskTrial','tZone','corrThr','edgeLen');
+        save(lagFileTrial,'lagTimeG6Trial','lagAmpG6Trial','maskTrial','tZone','corrThr','edgeLen');
         
         % gs lag plot
         lagFig = figure('Position',[100 100 700 600]);
@@ -173,24 +173,27 @@ end
 
 %% plot average across trials
 
+alphaData = nanmean(mask,3);
+alphaData = alphaData >= 0.5;
+
 % gs lag plot
 lagFig = figure('Position',[100 100 700 600]);
 p = panel();
 p.pack();
 p(1).pack(2,2);
-p(1,1,1).select(); imagesc(nanmean(lagTimeHbT,3),'AlphaData',nanmean(mask,3),[-tLim tLim]); axis(gca,'square');
+p(1,1,1).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagTimeHbT,3),'AlphaData',alphaData,[-tLim tLim]); axis(gca,'square');
 xlim([1 size(lagTimeHbT,1)]); ylim([1 size(lagTimeHbT,2)]); colormap('jet');
 set(gca,'ydir','reverse'); colorbar;
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT Lag Time (s)');
-p(1,1,2).select(); imagesc(nanmean(lagAmpHbT,3),'AlphaData',nanmean(mask,3),[0.3 1]); axis(gca,'square');
+p(1,1,2).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagAmpHbT,3),'AlphaData',alphaData,[0.3 1]); axis(gca,'square');
 xlim([1 size(lagAmpHbT,1)]); ylim([1 size(lagAmpHbT,2)]); colormap('jet');
 set(gca,'ydir','reverse'); colorbar;
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT Lag Amp');
-p(1,2,1).select(); imagesc(nanmean(lagTimeG6,3),'AlphaData',nanmean(mask,3),[-tLim/2 tLim/2]); axis(gca,'square');
+p(1,2,1).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagTimeG6,3),'AlphaData',alphaData,[-tLim/2 tLim/2]); axis(gca,'square');
 xlim([1 size(lagTimeG6,1)]); ylim([1 size(lagTimeG6,2)]); colormap('jet');
 set(gca,'ydir','reverse'); colorbar;
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('G6 Lag Time (s)');
-p(1,2,2).select(); imagesc(nanmean(lagAmpG6,3),'AlphaData',nanmean(mask,3),[0.3 1]); axis(gca,'square');
+p(1,2,2).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagAmpG6,3),'AlphaData',alphaData,[0.3 1]); axis(gca,'square');
 xlim([1 size(lagAmpG6,1)]); ylim([1 size(lagAmpG6,2)]); colormap('jet');
 set(gca,'ydir','reverse'); colorbar;
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('G6 Lag Amp');

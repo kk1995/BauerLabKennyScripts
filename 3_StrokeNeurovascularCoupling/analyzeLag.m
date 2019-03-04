@@ -16,7 +16,11 @@ freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass)];
 freqStr(strfind(freqStr,'.')) = 'p';
 freqStr = string(freqStr);
 
-tLim = 1.5;
+if contains(excelFile,'stim')
+    tLim = 1.5;
+else
+    tLim = 0.5;
+end
 
 edgeLen = 3;
 tZone = 2;
@@ -90,7 +94,7 @@ else
             xform_datafluorCorr = fluordata.xform_datafluorCorr;
         end
         
-        fs = fluordata.reader.FreqOut;
+        fs = fluordata.readerInfo.FreqOut;
         time = fluordata.rawTime;
         
         % filtering
@@ -144,17 +148,19 @@ end
 
 saveFileLoc = fileparts(saveFileLocs(1));
 [~,excelFileName,~] = fileparts(excelFile);
+alphaData = nanmean(mask,3);
+alphaData = alphaData >= 0.5;
 
 % roi time course
 dotLagFig = figure('Position',[100 100 900 400]);
 p = panel();
 p.pack();
 p(1).pack(1,2);
-p(1,1,1).select(); imagesc(nanmean(lagTime,3),'AlphaData',nanmean(mask,3),[-tLim tLim]); axis(gca,'square');
+p(1,1,1).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagTime,3),'AlphaData',alphaData,[-tLim tLim]); axis(gca,'square');
 xlim([1 size(lagTime,1)]); ylim([1 size(lagTime,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
-p(1,1,2).select(); imagesc(nanmean(lagAmp,3),[0.3 1]); axis(gca,'square');
+p(1,1,2).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagAmp,3),'AlphaData',alphaData,[0.3 1]); axis(gca,'square');
 xlim([1 size(lagAmp,1)]); ylim([1 size(lagAmp,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
