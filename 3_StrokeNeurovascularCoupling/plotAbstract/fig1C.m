@@ -1,6 +1,7 @@
-load('D:\data\atlas.mat','AtlasSeedsFilled');
+load('D:\data\atlas.mat');
 
-imagesc(AtlasSeedsFilled,'AlphaData',AtlasSeedsFilled>0);
+atlas(atlas > 20) = atlas(atlas > 20) - 20;
+imagesc(atlas,'AlphaData',atlas>0);
 axis(gca,'square');
 set(gca,'Visible','off');
 colormap('jet');

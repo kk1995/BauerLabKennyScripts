@@ -73,7 +73,7 @@ for trial = 1:trialNum
     % instantiate VideosReader
     reader = read.VideosReader();
     reader.ReaderObject = read.TiffVideoReader;
-    reader.ReaderObject.SpeciesNum = speciesNum;
+    reader.ReaderObject.ChNum = speciesNum;
     reader.DarkFrameInd = darkFrameInd;
     reader.InvalidInd = invalidFrameInd;
     reader.FreqIn = samplingRate;
@@ -147,7 +147,7 @@ for trial = 1:trialNum
     % instantiate VideosReader
     reader = read.VideosReader();
     reader.ReaderObject = read.TiffVideoReader;
-    reader.ReaderObject.SpeciesNum = speciesNum;
+    reader.ReaderObject.ChNum = speciesNum;
     reader.DarkFrameInd = darkFrameInd;
     reader.InvalidInd = invalidFrameInd;
     reader.FreqIn = samplingRate;

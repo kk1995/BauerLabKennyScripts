@@ -98,6 +98,9 @@ stimLoc{4,2} = roiL75;
 
 %% plot
 
+load('L:\ProcessedData\noVasculatureMask.mat');
+wlData = load('L:\ProcessedData\wl.mat');
+
 f1 = figure('Position',[100 100 800 365]);
 p = panel();
 p.pack('h',{0.23 0.23 0.23 0.23});
@@ -124,12 +127,18 @@ for week = 1:4
         set(gca,'yticklabel',[])
         axis(ax,'square');
         
+        image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
+        xlim([1 size(wlData.xform_wl,1)]); ylim([1 size(wlData.xform_wl,2)]);
+        set(gca,'ydir','reverse');
+        hold on;
+        
         badMouse = false(size(maskData{week},3),1);
         badMouse(rmMouse{week}) = true;
         
         % plot response data
         mask = nanmean(maskData{week}(:,:,~badMouse),3);
         mask = mask >= 1;
+        mask = mask & (leftMask | rightMask);
         
         subplotData = real(squeeze(plotData(:,:,stimInd,week)));
         if stimInd == 1
@@ -138,10 +147,10 @@ for week = 1:4
             cLim = [-2E-3 2E-3];
         end
         if week == 4
-            ax = mouseAnalysis.plot.plotBrain(ax,subplotData,mask,cLim,cMap,true,0.02);
-            set(ax(end),'FontSize',16);
+            ax = mouse.plot.plotBrain(ax,subplotData,mask,cLim,cMap,true,0.02);
+            set(ax(end),'FontSize',14);
         else
-            ax = mouseAnalysis.plot.plotBrain(ax,subplotData,mask,cLim,cMap);
+            ax = mouse.plot.plotBrain(ax,subplotData,mask,cLim,cMap);
         end
         % plot contour
         contour = stimLoc{week,stimInd};
@@ -155,7 +164,7 @@ for week = 1:4
         end
         
         if (stimInd == 1 && week == 1) || (stimInd == 1 && week == 4) || (stimInd == 2 && week == 1)
-            ax = mouseAnalysis.plot.plotContour(ax,contour,'k','-',2);
+            ax = mouse.plot.plotContour(ax,contour,'k','-',2);
         end
     end
 end

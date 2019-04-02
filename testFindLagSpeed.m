@@ -6,8 +6,17 @@
 % end
 
 %%
-x = rand(5000,200);
+data = [];
+for i = 1:200
+    data(i,:) = sin(2*pi*(linspace(0,3,1024) - rand()));
+%     data1(i,:) = awgn( data1(i,:) , 10 ); 
+end
+data = data+repmat(rand(1,size(data,2)),size(data,1),1);
 tic;
-[l,a] = mouse.conn.findLag(x,'corrThr',0,'quadFitUse',false,'validRange',30);
+[l,a] = mouse.conn.projLag(data,3,32);
 toc
-imagesc(a)
+figure;
+subplot(1,2,1);
+imagesc(l);
+subplot(1,2,2);
+imagesc(a,[0.5 1])

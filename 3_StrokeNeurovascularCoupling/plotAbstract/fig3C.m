@@ -1,6 +1,6 @@
 % loads in the roi and plots
 
-wlFile = 'D:\data\170126\170126-2528_baseline-LandmarksandMask.mat';
+wlFile = 'D:\ProcessedData\170126\170126-2528_baseline-fc-LandmarksandMask.mat';
 maskFile = 'D:\data\zachRosenthal\_meta\mask.mat';
 dataFile = 'D:\data\zachRosenthal\_stim\baseline_ROI_Lag.mat';
 load(dataFile);
@@ -34,6 +34,9 @@ stimLoc{4} = roiR75wk8;
 
 %% plot lag time
 
+load('L:\ProcessedData\noVasculatureMask.mat');
+wlData = load('L:\ProcessedData\wl.mat');
+
 if freqInd == 1
     cLim = [-0.5 0.5];
 else
@@ -63,16 +66,22 @@ for week = 1:4
         set(gca,'yticklabel',[])
         axis(ax,'square');
         
+        image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
+        xlim([1 size(wlData.xform_wl,1)]); ylim([1 size(wlData.xform_wl,2)]);
+        set(gca,'ydir','reverse');
+        hold on;
+        
         % plot fc data
         plotData = squeeze(nanmean(lagTime{week}(:,:,freqInd,species,:),5));
         mask = nanmean(maskData{week},3);
         mask = mask > 0.5;
+        mask = mask & (leftMask | rightMask);
         
         if week == 4
-            ax = mouseAnalysis.plot.plotBrain(ax,plotData,mask,cLim,cMap,true,0.02);
-            set(ax(end),'FontSize',16);
+            ax = mouse.plot.plotBrain(ax,plotData,mask,cLim,cMap,true,0.01);
+            set(ax(end),'FontSize',15);
         else
-            ax = mouseAnalysis.plot.plotBrain(ax,plotData,mask,cLim,cMap);
+            ax = mouse.plot.plotBrain(ax,plotData,mask,cLim,cMap);
         end
         
         if week < 3
@@ -84,7 +93,7 @@ for week = 1:4
         % plot contour
         contour = stimLoc{stimWeek};
         
-        ax = mouseAnalysis.plot.plotContour(ax,contour,'k');
+        ax = mouse.plot.plotContour(ax,contour,'k');
     end
 end
 
@@ -122,9 +131,9 @@ for week = 1:4
         mask = mask > 0.5;
         
         if week == 4
-            ax = mouseAnalysis.plot.plotBrain(ax,plotData,mask,cLim,cMap,true);
+            ax = mouse.plot.plotBrain(ax,plotData,mask,cLim,cMap,true);
         else
-            ax = mouseAnalysis.plot.plotBrain(ax,plotData,mask,cLim,cMap);
+            ax = mouse.plot.plotBrain(ax,plotData,mask,cLim,cMap);
         end
         
         if week < 3
@@ -136,6 +145,6 @@ for week = 1:4
         % plot contour
         contour = stimLoc{stimWeek};
         
-        ax = mouseAnalysis.plot.plotContour(ax,contour,'k');
+        ax = mouse.plot.plotContour(ax,contour,'k');
     end
 end

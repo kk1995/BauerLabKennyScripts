@@ -34,7 +34,7 @@ fluorSpecies = [];
 invalidFrameInd = 1;
 darkFrameInd = [];
 fluorDetrend = false;
-hbDetrend = false;
+hbDetrend = true;
 muspFcn = @(x,y) (40*(x/500).^-1.16)'*y;
 ledFiles = ["East3410OIS1_TL_470_Pol.txt", ...
         "East3410OIS1_TL_590_Pol.txt", ...
@@ -153,13 +153,13 @@ for trial = 1:trialNum
     reader.FreqOut = procSamplingRate;
     reader.TimeFrames = [];
     
-    hbProc = HbProcessor();
+    hbProc = process.HbProcessor();
     hbProc.OpticalProperty = hbOP;
     hbProc.Mask = mask.isbrain;
     hbProc.Detrend = hbDetrend;
     hbProc.AffineMarkers = mask.I;
     
-    fluorProc = FluorProcessor();
+    fluorProc = process.FluorProcessor();
     fluorProc.OpticalPropertyIn = fluorInOP;
     fluorProc.OpticalPropertyOut = fluorOutOP;
     fluorProc.Detrend = fluorDetrend;

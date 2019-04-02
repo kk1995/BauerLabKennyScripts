@@ -41,6 +41,9 @@ end
 
 %% plot
 
+load('L:\ProcessedData\noVasculatureMask.mat');
+wlData = load('L:\ProcessedData\wl.mat');
+
 % plot bar plot showing average value in each week
 roiValueSpec = roiValue(:,:,1);
 % figure('Position',[100 100 720 500]);

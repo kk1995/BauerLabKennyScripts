@@ -10,16 +10,21 @@ if numel(varargin) > 0
 else
     parameters.lowpass = 0.5; %1/30 Hz
     parameters.highpass = 0.009;
+    parameters.startTime = 0;
 end
 
-freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass)];
+if parameters.startTime == 0
+    freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass)];
+else
+    freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass),'-startT-',num2str(parameters.startTime)];
+end
 freqStr(strfind(freqStr,'.')) = 'p';
 freqStr = string(freqStr);
 
 if contains(excelFile,'stim')
     tLim = 1.5;
 else
-    tLim = 0.5;
+    tLim = 1;
 end
 
 edgeLen = 3;
@@ -100,16 +105,23 @@ else
         % filtering
         if ~isempty(parameters.highpass)
             xform_datahb = highpass(xform_datahb,parameters.highpass,fs);
-            xform_datafluorCorr = highpass(xform_datafluorCorr,parameters.highpass,fs);
         end
         if ~isempty(parameters.lowpass)
             xform_datahb = lowpass(xform_datahb,parameters.lowpass,fs);
+        end
+        
+        if ~isempty(parameters.highpass)
+            xform_datafluorCorr = highpass(xform_datafluorCorr,parameters.highpass,fs);
+        end
+        if ~isempty(parameters.lowpass)
             xform_datafluorCorr = lowpass(xform_datafluorCorr,parameters.lowpass,fs);
         end
         
         data1 = squeeze(sum(xform_datahb,3));
+        data1 = data1(:,:,time >= parameters.startTime);
         data2 = squeeze(xform_datafluorCorr);
-        [lagTimeTrial,lagAmpTrial,~] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
+        data2 = data2(:,:,time >= parameters.startTime);
+        [lagTimeTrial,lagAmpTrial,covResult] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
         lagTimeTrial = lagTimeTrial./fs;
         
         % plot lag
@@ -146,24 +158,49 @@ end
 
 %% plot average across trials
 
+load('L:\ProcessedData\noVasculatureMask.mat');
+wlData = load('L:\ProcessedData\wl.mat');
+load('D:\data\zachRosenthal\_stim\infarctroi.mat');
+
 saveFileLoc = fileparts(saveFileLocs(1));
 [~,excelFileName,~] = fileparts(excelFile);
 alphaData = nanmean(mask,3);
 alphaData = alphaData >= 0.5;
 
+alphaData = alphaData & (leftMask | rightMask);
+
 % roi time course
-dotLagFig = figure('Position',[100 100 900 400]);
+dotLagFig = figure('Position',[100 100 400 650]);
 p = panel();
+p.margintop = 10;
+p.marginright = 10;
 p.pack();
-p(1).pack(1,2);
-p(1,1,1).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagTime,3),'AlphaData',alphaData,[-tLim tLim]); axis(gca,'square');
+p(1).pack(2,1);
+p(1,1,1).select(); 
+set(gca,'Color','k');
+set(gca,'FontSize',16);
+image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
+hold on;
+imagesc(nanmean(lagTime,3),'AlphaData',alphaData,[-tLim tLim]); axis(gca,'square');
 xlim([1 size(lagTime,1)]); ylim([1 size(lagTime,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
-set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
-p(1,1,2).select(); set(gca, 'Color', [0 0 0]); imagesc(nanmean(lagAmp,3),'AlphaData',alphaData,[0.3 1]); axis(gca,'square');
+set(gca,'XTick',[]); set(gca,'YTick',[]);
+P = mask2poly(infarctroi);
+plot(P.X,P.Y,'k','LineWidth',3);
+hold off;
+
+p(1,2,1).select();
+set(gca,'Color','k');
+set(gca,'FontSize',16);
+image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
+hold on;
+imagesc(nanmean(lagAmp,3),'AlphaData',alphaData,[0.3 1]); axis(gca,'square');
 xlim([1 size(lagAmp,1)]); ylim([1 size(lagAmp,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
-set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
+set(gca,'XTick',[]); set(gca,'YTick',[]);
+P = mask2poly(infarctroi);
+plot(P.X,P.Y,'k','LineWidth',3);
+hold off;
 
 % save lag figure
 dotLagFigFile = fullfile(saveFileLoc,...

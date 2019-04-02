@@ -1,12 +1,12 @@
 % loads lag analysis data and plots average over all mice
-mainDir = 'D:\data\zachRosenthal\';
+mainDir = 'D:\data\zachRosenthal\analysis';
 
 lagMat = cell(4,4);
 ampMat = cell(4,4);
 mask = cell(4,4);
 
-fMin = 0.5;
-fMax = 5;
+fMin = 0.009;
+fMax = 0.5;
 
 useBaselineWeek = false; % means baseline is used
 
@@ -20,8 +20,8 @@ figNameExt = [fMinStr 'to' fMaxStr];
 fCenter = exp(log(fMax) + log(fMin) / 2);
 
 if fCenter < 1
-    cMin = -0.5;
-    cMax = 0.5;
+    cMin = -0.3;
+    cMax = 0.3;
 else
     cMin = -0.02;
     cMax = 0.02;
@@ -45,9 +45,9 @@ for weekInd = 1:4
         
         % get mouse avg
         for i = 1:4
-            lagMat{weekInd,i}(:,:,file) = nanmean(fileData.lagMat{i},3);
-            ampMat{weekInd,i}(:,:,file) = nanmean(fileData.ampMat{i},3);
-            mask{weekInd,i}(:,:,file) = nanmean(fileData.mask{i},3);
+            lagMat{weekInd,i}(:,:,file) = nanmean(fileData.lagMouse,3);
+            ampMat{weekInd,i}(:,:,file) = nanmean(fileData.ampMouse,3);
+            mask{weekInd,i}(:,:,file) = nanmean(fileData.maskMouse,3);
         end
         
     end
@@ -120,7 +120,7 @@ for week = 1:4
     end
 end
 
-cMap = blueWhiteRed(100,[0 1],1);
+cMap = mouse.plot.blueWhiteRed(100,[0 1],1);
 figure('Position',[100 50 750 900]);
 for week = 2:4
     for species = 1:4

@@ -7,6 +7,12 @@ function [time,dataHb,dataFluor,dataFluorCorr] = hbAndOneFluor(fileNames,reader,
 reader.TimeFrames = [];
 [raw,time] = reader.read(fileNames);
 
+isdead = mouse.qc.deadData(raw);
+
+if isdead
+    error('Dead data present');
+end
+
 % process hb
 dataHb = hbProc.process(raw(:,:,hbSpecies,:));
 

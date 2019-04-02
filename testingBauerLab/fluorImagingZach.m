@@ -35,7 +35,7 @@ invalidFrameInd = 1;
 darkFrameInd = [];
 fluorDetrend = true;
 hbDetrend = true;
-muspFcn = @(x) 10;
+muspFcn = @(x,y) 10;
 ledFiles = ["150917_TL_470nm_Pol.txt",...
         "150917_Mtex_530nm_Pol.txt",...
         "150917_TL_590nm_Pol.txt"...
@@ -153,13 +153,13 @@ for trial = 1:trialNum
     reader.FreqOut = procSamplingRate;
     reader.TimeFrames = [];
     
-    hbProc = HbProcessor();
+    hbProc = process.HbProcessor();
     hbProc.OpticalProperty = hbOP;
     hbProc.Mask = mask.isbrain;
     hbProc.Detrend = hbDetrend;
     hbProc.AffineMarkers = mask.I;
     
-    fluorProc = FluorProcessor();
+    fluorProc = process.FluorProcessor();
     fluorProc.OpticalPropertyIn = fluorInOP;
     fluorProc.OpticalPropertyOut = fluorOutOP;
     fluorProc.Detrend = fluorDetrend;
