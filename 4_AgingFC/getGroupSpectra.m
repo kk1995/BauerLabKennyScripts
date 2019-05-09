@@ -1,7 +1,6 @@
 excelFile = "D:\data\deborahData.xlsx";
 nfft = 256;
 fs = 1;
-% saveFile = "avgSpectra0p009to0p08.mat";
 saveFile2 = "avgSpectra_gsr.mat";
 
 rows = 2:22;

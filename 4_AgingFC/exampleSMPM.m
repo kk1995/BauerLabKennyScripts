@@ -1,66 +1,37 @@
 dataFile = "L:\ProcessedData\avgSpectra0p01to0p08_gsr.mat";
-iterNum = 2000;
+iterNum = 2000; %the number of permutatioms u want to do
 fRange = [0.01 0.08];
 
 load(dataFile);
 
-inRange = freq >= fRange(1) & freq <= fRange(2);
-spectra1 = squeeze(sum(yvSpectra(:,:,inRange,:),3));
-spectra2 = squeeze(sum(ovSpectra(:,:,inRange,:),3));
-spectra3 = squeeze(sum(odSpectra(:,:,inRange,:),3));
+spectra1 = yvSpectra; %data in 128x128x numsubjects gouup 1
+spectra2 = ovSpectra;
 
-brain1 = yvBrain;
+brain1 = yvBrain; %bain mask
 brain2 = ovBrain;
-brain3 = odBrain;
 
-gspectra1 = zeros(1,size(yvSpectra,3));
-for i = 1:size(yvSpectra,4)
-    mouseSpectra = reshape(yvSpectra(:,:,:,i),128*128,[]);
-    mouseSpectra = mouseSpectra(logical(brain1(:,:,i)),:);
-    mouseSpectra = mean(mouseSpectra,1);
-    gspectra1 = gspectra1 + mouseSpectra;
-end
-gspectra1 = gspectra1./size(yvSpectra,3);
-
-gspectra2 = zeros(1,size(ovSpectra,3));
-for i = 1:size(ovSpectra,4)
-    mouseSpectra = reshape(ovSpectra(:,:,:,i),128*128,[]);
-    mouseSpectra = mouseSpectra(logical(brain2(:,:,i)),:);
-    mouseSpectra = mean(mouseSpectra,1);
-    gspectra2 = gspectra2 + mouseSpectra;
-end
-gspectra2 = gspectra2./size(yvSpectra,3);
-
-gspectra3 = zeros(1,size(odSpectra,3));
-for i = 1:size(odSpectra,4)
-    mouseSpectra = reshape(odSpectra(:,:,:,i),128*128,[]);
-    mouseSpectra = mouseSpectra(logical(brain3(:,:,i)),:);
-    mouseSpectra = mean(mouseSpectra,1);
-    gspectra3 = gspectra3 + mouseSpectra;
-end
-gspectra3 = gspectra3./size(yvSpectra,3);
-
-spectra1 = permute(spectra1,[3 1 2]);
+spectra1 = permute(spectra1,[3 1 2]); %put the mouse inthe first dim
 spectra2 = permute(spectra2,[3 1 2]);
-spectra3 = permute(spectra3,[3 1 2]);
 
-totalMat = cat(1,spectra1,spectra2);
-[~,~,~,z] = ttest2(spectra1,spectra2);
-testMat = squeeze(z.tstat);
-nullMat = zeros(128,128,iterNum);
+totalMat = cat(1,spectra1,spectra2);  %put them together
+[~,~,~,z] = ttest2(spectra1,spectra2); %run the actual Ttest
+testMat = squeeze(z.tstat); %creating the matrix rmo the Z struct
+nullMat = zeros(128,128,iterNum); %initialize
 
 for i = 1:iterNum
     if mod(i,100) == 0
         disp(num2str(i));
     end
-    randOrder = randperm(14);
-    [~,~,~,z] = ttest2(totalMat(randOrder(1:7),:,:),totalMat(randOrder(8:14),:,:));
-    nullMat(:,:,i) = z.tstat;
+    randOrder = randperm(14); %14 is the 7 + 7 number of subjects,  
+    [~,~,~,z] = ttest2(totalMat(randOrder(1:7),:,:),totalMat(randOrder(8:14),:,:)); %shuffles the groups and run the ttest to get a matrix of t-values
+    nullMat(:,:,i) = z.tstat; %put them into null matrix
 end
 
-tThr = tinv(0.975,squeeze(round(sum(cat(3,brain1,brain2),3)./2)));
+group1N = sum(brain1,3);
+group2N = sum(brain2,3);
+tThr = tinv(0.975,round((group1N + group2N)./2)); %get t threshold only in the isbrain
 
-[clusterLoc,clusterP,clusterT,tDist] = mouse.stat.clusterTestMaris(nullMat,testMat,tThr);
+[clusterLoc,clusterP,clusterT,tDist] = clusterTestMaris(nullMat,testMat,tThr);
 
 significantMask = zeros(128);
 for i = 1:numel(clusterLoc)
@@ -69,43 +40,15 @@ for i = 1:numel(clusterLoc)
     end
 end
 
-totalMat = cat(1,spectra2,spectra3);
-[~,~,~,z] = ttest2(spectra2,spectra3);
-testMat = squeeze(z.tstat);
-nullMat = zeros(128,128,iterNum);
 
-for i = 1:iterNum
-    if mod(i,100) == 0
-        disp(num2str(i));
-    end
-    randOrder = randperm(14);
-    [~,~,~,z] = ttest2(totalMat(randOrder(1:7),:,:),totalMat(randOrder(8:14),:,:));
-    nullMat(:,:,i) = z.tstat;
-end
-
-tThr = tinv(0.975,squeeze(round(sum(cat(3,brain1,brain2),3)./2)));
-
-[clusterLoc,clusterP,clusterT,tDist] = mouse.stat.clusterTestMaris(nullMat,testMat,tThr);
-
-significantMask2 = zeros(128);
-for i = 1:numel(clusterLoc)
-    if clusterP(i) < 0.05
-        significantMask2(clusterLoc{i}) = 1;
-    end
-end
-
-spectra1 = permute(spectra1,[2 3 1]);
-spectra2 = permute(spectra2,[2 3 1]);
-spectra3 = permute(spectra3,[2 3 1]);
-
-%%
+%% plotting
 
 yLim = [6 123];
 xLim = [6 123];
 
 cMax = 10E-11;
-wlData = load("L:\ProcessedData\deborahWL.mat");
-hemisphereData = load("L:\ProcessedData\deborahHemisphereMask.mat");
+wlData = load("L:\ProcessedData\deborah\deborahWL.mat");
+hemisphereData = load("L:\ProcessedData\deborah\deborahHemisphereMask.mat");
 atlasData = load("D:\data\atlas12.mat");
 
 topC = [1 0 0]; bottomC = [0 0 1];
@@ -169,7 +112,7 @@ for i = 1:numel(unique(atlasData.atlasUnfilled(:)))-1
     lh.Color=[0,0,0,0.5];
 end
 
-p(2,1).select();
+p(2,1).select(); %ploting difference between groups, thresholded for sig clusters
 set(gca,'Color',[1,1,1,0]);
 set(gca,'Visible','off');
 set(gca,'FontSize',12);

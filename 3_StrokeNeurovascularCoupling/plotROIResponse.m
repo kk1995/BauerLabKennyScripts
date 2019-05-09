@@ -31,37 +31,51 @@ for trial = 1:trialNum
     
     % load
     saveFileDataPrefix = fullfile(saveFileLocs(trial),saveFileDataPrefixes(trial));
-    saveFileLoc = saveFileLocs(trial);
-    saveFileMaskName = saveFileMaskNames(trial);
-    maskFileName = string(fullfile(saveFileLoc,strcat(saveFileMaskName,"-LandmarksandMask.mat")));
-    mask = load(maskFileName);
-    hbFileName = strcat(saveFileDataPrefix,"-datahb.mat");
-    load(hbFileName);
-    fluorFileName = strcat(saveFileDataPrefix,"-dataFluor.mat");
-    load(fluorFileName);
     
-    % gsr
     if useGsr
-        xform_datahb = mouse.process.gsr(xform_datahb,mask.xform_isbrain);
-        xform_datafluorCorr = mouse.process.gsr(xform_datafluorCorr,mask.xform_isbrain);
+        saveFile = strcat(saveFileDataPrefix,"-roiResponse-gsr.mat");
+    else
+        saveFile = strcat(saveFileDataPrefix,"-roiResponse.mat");
     end
-    % make block avg
-    fs = readerInfo.FreqOut;
-    [hbBlock, hbTime] = mouse.preprocess.blockAvg(xform_datahb,rawTime,blockLen,fs*blockLen);
-    [fluorBlock, fluorTime] = mouse.preprocess.blockAvg(xform_datafluorCorr,rawTime,blockLen,fs*blockLen);
-    preStimHb = mean(hbBlock(:,:,:,hbTime < stimStart),4);
-    hbBlock = bsxfun(@minus,hbBlock,preStimHb);
-    preStimFluor = mean(fluorBlock(:,:,:,fluorTime < stimStart),4);
-    fluorBlock = bsxfun(@minus,fluorBlock,preStimFluor);
-    
-    % get roi
-    stimResponse = mean(hbBlock(:,:,:,hbTime > stimResponseTime(1) & hbTime < stimResponseTime(2)),4);
-    roiTrial = mouse.expSpecific.getROI(stimResponse(:,:,1),roiSeed);
-    
-    % make roi response
-    hbBlock = reshape(hbBlock,size(hbBlock,1)*size(hbBlock,2),2,[]);
-    fluorBlock = reshape(fluorBlock,size(fluorBlock,1)*size(fluorBlock,2),[]);
-    roiResponseTrial = cat(1,squeeze(mean(hbBlock(roiTrial,:,:),1)),squeeze(mean(fluorBlock(roiTrial,:),1)));
+    if exist(saveFile)
+        load(saveFile);
+    else
+        
+        saveFileLoc = saveFileLocs(trial);
+        saveFileMaskName = saveFileMaskNames(trial);
+        maskFileName = string(fullfile(saveFileLoc,strcat(saveFileMaskName,"-LandmarksandMask.mat")));
+        mask = load(maskFileName);
+        hbFileName = strcat(saveFileDataPrefix,"-datahb.mat");
+        load(hbFileName);
+        fluorFileName = strcat(saveFileDataPrefix,"-dataFluor.mat");
+        load(fluorFileName);
+        
+        % gsr
+        if useGsr
+            xform_datahb = mouse.process.gsr(xform_datahb,mask.xform_isbrain);
+            xform_datafluorCorr = mouse.process.gsr(xform_datafluorCorr,mask.xform_isbrain);
+        end
+        % make block avg
+        fs = readerInfo.FreqOut;
+        [hbBlock, hbTime] = mouse.preprocess.blockAvg(xform_datahb,rawTime,blockLen,fs*blockLen);
+        [fluorBlock, fluorTime] = mouse.preprocess.blockAvg(xform_datafluorCorr,rawTime,blockLen,fs*blockLen);
+        preStimHb = mean(hbBlock(:,:,:,hbTime < stimStart),4);
+        hbBlock = bsxfun(@minus,hbBlock,preStimHb);
+        preStimFluor = mean(fluorBlock(:,:,:,fluorTime < stimStart),4);
+        fluorBlock = bsxfun(@minus,fluorBlock,preStimFluor);
+        
+        % get roi
+        stimResponse = mean(hbBlock(:,:,:,hbTime > stimResponseTime(1) & hbTime < stimResponseTime(2)),4);
+        roiTrial = mouse.expSpecific.getROI(stimResponse(:,:,1),roiSeed);
+        
+        % make roi response
+        hbBlock = reshape(hbBlock,size(hbBlock,1)*size(hbBlock,2),2,[]);
+        fluorBlock = reshape(fluorBlock,size(fluorBlock,1)*size(fluorBlock,2),[]);
+        roiResponseTrial = cat(1,squeeze(mean(hbBlock(roiTrial,:,:),1)),squeeze(mean(fluorBlock(roiTrial,:),1)));
+        
+        % save
+        save(saveFile,'hbTime','fluorTime','roiResponseTrial','-v7.3');
+    end
     
     % plot roi response
     f1 = figure('Position',[100 100 800 350]);

@@ -10,17 +10,41 @@ if numel(varargin) > 0
 else
     parameters.lowpass = 0.08; %1/30 Hz
     parameters.highpass = 0.01;
+    parameters.useGsr = false;
 end
 
 freqStr = [num2str(parameters.highpass),'-',num2str(parameters.lowpass)];
 freqStr(strfind(freqStr,'.')) = 'p';
 freqStr = string(freqStr);
 
-cLimHbT = [0 2E-11];
-cLimFluor = [0 2E-4];
+if parameters.lowpass == 0.08 && parameters.highpass == 0.01
+    cLimHbT = [-11.3 -10.2];
+    cLimFluor = [-4.5 -3.0];
+end
+if parameters.lowpass == 4 && parameters.highpass == 0.5
+    cLimHbT = [-14 -13];
+    cLimFluor = [-6.8 -5.8];
+end
+if parameters.lowpass == 4 && parameters.highpass == 1
+    cLimHbT = [-14.3 -13.3];
+    cLimFluor = [-6.8 -5.8];
+end
 
 nfft = 512;
 
+useGsr = parameters.useGsr;
+
+if useGsr
+    gsrStr = "-GSR";
+else
+    gsrStr = "-noGSR";
+end
+
+if useGsr
+    cLimHbT = cLimHbT - 0.3;
+    cLimFluor = cLimFluor - 0.3;
+end
+    
 %% import packages
 
 import mouse.*
@@ -59,9 +83,12 @@ end
 
 saveFileLoc = fileparts(saveFileLocs(1));
 [~,excelFileName,~] = fileparts(excelFile);
+% psdFile = fullfile(saveFileLoc,...
+%     strcat(string(excelFileName),"-rows",num2str(min(rows)),...
+%     "~",num2str(max(rows)),"-psdHbTG6-",freqStr,".mat"));
 psdFile = fullfile(saveFileLoc,...
     strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-psdHbTG6.mat"));
+    "~",num2str(max(rows)),"-psdHbTG6",gsrStr,".mat"));
 
 spectraHbT = [];
 spectraFluor = [];
@@ -74,7 +101,7 @@ else
         disp(['Trial # ' num2str(trialInd)]);
         
         psdFileTrial = fullfile(saveFileLocs(trialInd),...
-            strcat(saveFileDataNames(trialInd),"-psdHbTG6.mat"));
+            strcat(saveFileDataNames(trialInd),"-psdHbTG6",gsrStr,".mat"));
         
         if exist(psdFileTrial)
             load(psdFileTrial);
@@ -97,9 +124,11 @@ else
             
             fs = fluordata.readerInfo.FreqOut;
             
-            % gsr
-            xform_datahb = mouse.process.gsr(xform_datahb,maskTrial);
-            xform_datafluorCorr = mouse.process.gsr(xform_datafluorCorr,maskTrial);
+            if useGsr
+                % gsr
+                xform_datahb = mouse.process.gsr(xform_datahb,maskTrial);
+                xform_datafluorCorr = mouse.process.gsr(xform_datafluorCorr,maskTrial);
+            end
             xform_datafluorCorr = squeeze(xform_datafluorCorr);
             xform_datahbT = squeeze(sum(xform_datahb,3));
             
@@ -109,6 +138,8 @@ else
             [spectraFluorTrial,freq] = pwelch(reshape(xform_datafluorCorr,[],size(xform_datafluorCorr,3))',[],[],nfft,fs);
             spectraFluorTrial = reshape(spectraFluorTrial',128,128,[]);
             
+            spectraHbTTrial = real(spectraHbTTrial);
+            spectraFluorTrial = real(spectraFluorTrial);
             % save psd data
             save(psdFileTrial,'maskTrial','spectraHbTTrial','spectraFluorTrial','nfft','fs','freq');
         end
@@ -122,18 +153,18 @@ else
         p = panel();
         p.pack();
         p(1).pack(1,2);
-        p(1,1,1).select(); imagesc(hbtPower,'AlphaData',maskTrial,cLimHbT); axis(gca,'square');
+        p(1,1,1).select(); imagesc(log10(hbtPower),'AlphaData',maskTrial,cLimHbT); axis(gca,'square');
         xlim([1 size(hbtPower,1)]); ylim([1 size(hbtPower,2)]);
         set(gca,'ydir','reverse'); colorbar; colormap('jet');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('HbT power');
-        p(1,1,2).select(); imagesc(fluorPower,'AlphaData',maskTrial,cLimFluor); axis(gca,'square');
+        p(1,1,2).select(); imagesc(log10(fluorPower),'AlphaData',maskTrial,cLimFluor); axis(gca,'square');
         xlim([1 size(fluorPower,1)]); ylim([1 size(fluorPower,2)]);
         set(gca,'ydir','reverse'); colorbar; colormap('jet');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Fluor power');
         
         % save lag figure
         psdFigFile = fullfile(saveFileLocs(trialInd),...
-            strcat(saveFileDataNames(trialInd),"-psdHbTG6-",freqStr,".fig"));
+            strcat(saveFileDataNames(trialInd),"-psdHbTG6-",freqStr,gsrStr,".fig"));
         savefig(psdFig,psdFigFile);
         close(psdFig);
         
@@ -153,10 +184,10 @@ end
 
 load('L:\ProcessedData\noVasculatureMask.mat');
 wlData = load('L:\ProcessedData\wl.mat');
-load('D:\data\zachRosenthal\_stim\infarctroi.mat');
+load('D:\ProcessedData\zachInfarctROI.mat');
 
-hbtPower = squeeze(mean(spectraHbT,3));
-fluorPower = squeeze(mean(spectraFluor,3));
+hbtPower = squeeze(mean(spectraHbT(:,:,freq > parameters.highpass & freq < parameters.lowpass,:),3));
+fluorPower = squeeze(mean(spectraFluor(:,:,freq > parameters.highpass & freq < parameters.lowpass,:),3));
 
 saveFileLoc = fileparts(saveFileLocs(1));
 [~,excelFileName,~] = fileparts(excelFile);
@@ -178,7 +209,7 @@ set(gca,'Color','k');
 set(gca,'FontSize',16);
 image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 hold on;
-imagesc(hbtPower,'AlphaData',alphaData,cLimHbT/50); axis(gca,'square');
+imagesc(log10(hbtPower),'AlphaData',alphaData,cLimHbT); axis(gca,'square');
 xlim([1 size(hbtPower,1)]); ylim([1 size(hbtPower,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]);
@@ -191,7 +222,7 @@ set(gca,'Color','k');
 set(gca,'FontSize',16);
 image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 hold on;
-imagesc(fluorPower,'AlphaData',alphaData,cLimFluor/100); axis(gca,'square');
+imagesc(log10(fluorPower),'AlphaData',alphaData,cLimFluor); axis(gca,'square');
 xlim([1 size(fluorPower,1)]); ylim([1 size(fluorPower,2)]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]);
@@ -202,7 +233,7 @@ hold off;
 % save lag figure
 psdFigFile = fullfile(saveFileLoc,...
     strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-psdHbTG6-",freqStr,".fig"));
+    "~",num2str(max(rows)),"-psdHbTG6-",freqStr,gsrStr,".fig"));
 savefig(psdFig,psdFigFile);
 close(psdFig);
 

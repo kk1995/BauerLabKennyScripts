@@ -1,103 +1,95 @@
-excelFile = "D:\data\zach_gcamp_stroke_fc_trials.xlsx";
-saveEachTrialFolder = "L:\ProcessedData\3_NeurovascularCoupling\trials";
+function getGroupFC(rowList)
+
+excelFile = fullfile('D:\data','zach_gcamp_stroke_fc_trials.xlsx');
+% rowList = 2:167;
+
+sR = 16.8;
 saveFolder = "L:\ProcessedData\3_NeurovascularCoupling";
-rows = 2:43;
 
 %%
 
-fs = 16.8;
-fMin = 0.009;
-fMax = 0.5;
+fMin = 0.5;
+fMax = 4;
 
-fMinStr = "0p009"; fMaxStr = "0p5";
-
-saveFilePrefix = strcat("hbtFC-fc-",fMinStr,"-",fMaxStr,"-row-");
-saveFilePrefix2 = strcat("g6corrFC-fc-",fMinStr,"-",fMaxStr,"-row-");
-
-trialInfo = getTrialInfo(excelFile,rows);
-
-% saveFolder = trialInfo(1).saveDir;
-% saveFolder = fileparts(saveFolder);
+fMinStr = '0p5'; fMaxStr = '4';
 
 %%
 
-fcAvg = zeros(128^2);
-maskTotal = [];
-sampleNum = zeros(128^2);
+load('L:\ProcessedData\gcampStimROI.mat'); %stimROIAll
+stimROIAll = logical(stimROIAll);
 
-trialNum = numel(trialInfo);
-for i = 1:trialNum
-    disp([num2str(i) '/' num2str(trialNum)]);
-    saveName = fullfile(saveEachTrialFolder,strcat(saveFilePrefix,num2str(rows(i)),".mat"));
+[~, ~, raw]=xlsread(excelFile,1, ['A',num2str(rowList(1)),':K',num2str(rowList(1))]);
+
+hbFC = [];
+fluorFC = [];
+mask = [];
+rowInd = 0;
+prevMouseName = raw{2};
+mouseName = prevMouseName;
+
+for row = rowList
+    rowInd = rowInd + 1;
+    disp(['File # ' num2str(rowInd) '/' num2str(numel(rowList))]);
     
-    if exist(saveName)
-        disp('loading');
-        load(saveName)
-    else
-        disp('making');
-        hbData = load(trialInfo(i).hbFile);
-        maskData = load(trialInfo(i).maskFile);
+    [~, ~, raw]=xlsread(excelFile,1, ['A',num2str(row),':K',num2str(row)]);
+    mouseName = raw{2};
+    dataDir = raw{5};
+    dataFileName = raw{7};
+    sR = raw{11};
+    
+    if ~strcmp(prevMouseName,mouseName)
+        hbFC = nanmean(hbFC,5);
+        fluorFC = nanmean(fluorFC,5);
         
-        xform_isbrain = maskData.xform_isbrain;
-        
-        data = squeeze(sum(hbData.xform_datahb,3));
-        data = mouse.freq.filterData(data,fMin,fMax,fs);
-        data = mouse.process.gsr(data,xform_isbrain);
-        fc = mouse.conn.getFC(data);
-        clear data;
-        fc = atanh(fc);
-        mask = xform_isbrain;
-        save(saveName,'fc','mask','-v7.3');
+        save(fullfile(saveDir,saveFile),'hbFC','fluorFC','mask','stimROIAll','-v7.3');
+        hbFC = [];
+        fluorFC = [];
+        mask = [];
     end
-    fc(isnan(fc)) = 0;
-    fcAvg = fcAvg + fc;
-    sampleNum = sampleNum + ~isnan(fc);
-    maskTotal = cat(3,maskTotal,mask);
-    clear fc;
-end
-
-fcAvg = fcAvg./sampleNum;
-
-saveName = strcat(saveFilePrefix,num2str(rows(1)),"-",num2str(rows(end)),".mat");
-save(fullfile(saveFolder,saveName),'fcAvg','sampleNum','maskTotal','-v7.3');
-
-%%
-
-fcAvg = zeros(128^2);
-maskTotal = [];
-sampleNum = zeros(128^2);
-
-trialNum = numel(trialInfo);
-for i = 1:trialNum
-    disp([num2str(i) '/' num2str(trialNum)]);
-    saveName = fullfile(saveEachTrialFolder,strcat(saveFilePrefix2,num2str(rows(i)),".mat"));
-    if exist(saveName)
-        disp('loading');
-        load(saveName)
-    else
-        disp('making');
-        fluorData = load(trialInfo(i).fluorFile);
-        maskData = load(trialInfo(i).maskFile);
-        
-        xform_isbrain = maskData.xform_isbrain;
-        
-        data = squeeze(sum(fluorData.xform_datafluorCorr,3));
-        data = mouse.freq.filterData(data,fMin,fMax,fs);
-        data = mouse.process.gsr(data,xform_isbrain);
-        fc = mouse.conn.getFC(data);
-        clear data;
-        fc = atanh(fc);
-        mask = xform_isbrain;
-        save(saveName,'fc','mask','-v7.3');
+    
+    prevMouseName = mouseName;
+    
+    saveDir = dataDir;
+    saveFile = [mouseName '-' fMinStr '-' fMaxStr '-roi-fc.mat'];
+    
+    % load
+    maskData = load(fullfile(dataDir,[dataFileName(1:end-1) '-LandmarksAndMask.mat']));
+    hbData = load(fullfile(dataDir,[dataFileName '-datahb.mat']));
+    fluorData = load(fullfile(dataDir,[dataFileName '-datafluor.mat']));
+    
+    % filter
+    hbData.xform_datahb = mouse.freq.filterData(hbData.xform_datahb,fMin,fMax,sR);
+    fluorData.xform_datafluorCorr = mouse.freq.filterData(fluorData.xform_datafluorCorr,fMin,fMax,sR);
+    
+    % gsr
+    hbData.xform_datahb = mouse.process.gsr(hbData.xform_datahb,maskData.xform_isbrain);
+    fluorData.xform_datafluorCorr = mouse.process.gsr(fluorData.xform_datafluorCorr,maskData.xform_isbrain);
+    
+    % create fc
+    hbFCTrial = mouse.conn.getFC(sum(hbData.xform_datahb,3));
+    hbFCTrial = atanh(hbFCTrial);
+    hbFCTrial(isinf(hbFCTrial)) = 0;
+    fluorFCTrial = mouse.conn.getFC(fluorData.xform_datafluorCorr);
+    fluorFCTrial = atanh(fluorFCTrial);
+    fluorFCTrial(isinf(fluorFCTrial)) = 0;
+    
+    hbFCTrialROI = nan(128,128,2,4);
+    fluorFCTrialROI = nan(128,128,2,4);
+    for i = 1:2
+        for j = 1:4
+            roi = stimROIAll(:,:,i,j);
+            hbFCTrial1 = hbFCTrial(roi(:),:);
+            hbFCTrial1 = nanmean(hbFCTrial1,1);
+            hbFCTrialROI(:,:,i,j) = reshape(hbFCTrial1,128,128);
+            
+            fluorFCTrial1 = fluorFCTrial(roi(:),:);
+            fluorFCTrial1 = nanmean(fluorFCTrial1,1);
+            fluorFCTrialROI(:,:,i,j) = reshape(fluorFCTrial1,128,128);
+        end
     end
-    fc(isnan(fc)) = 0;
-    fcAvg = fcAvg + fc;
-    sampleNum = sampleNum + ~isnan(fc);
-    maskTotal = cat(3,maskTotal,mask);
-    clear fc;
+    
+    hbFC = cat(5,hbFC,hbFCTrialROI);
+    fluorFC = cat(5,fluorFC,fluorFCTrialROI);
+    mask = cat(3,mask,maskData.xform_isbrain);
 end
-
-fcAvg = fcAvg./sampleNum;
-
-saveName = strcat(saveFilePrefix2,num2str(rows(1)),"-",num2str(rows(end)),".mat");
-save(fullfile(saveFolder,saveName),'fcAvg','sampleNum','maskTotal','-v7.3');
+end

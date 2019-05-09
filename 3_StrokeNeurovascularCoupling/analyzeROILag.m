@@ -8,8 +8,8 @@ function analyzeROILag(excelFile,rows,varargin)
 if numel(varargin) > 0
     parameters = varargin{1};
 else
-    parameters.lowpass = 0.5; %1/30 Hz
-    parameters.highpass = 0.009;
+    parameters.lowpass = 0.08; %1/30 Hz
+    parameters.highpass = 0.01;
 end
 
 if numel(varargin) > 1

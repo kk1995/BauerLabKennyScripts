@@ -1,7 +1,11 @@
-function analyzeLag(excelFile,rows,varargin)
-%analyzeLag Analyze dot lag and save the results
+function fitLagParameters(excelFile,rowsToRead,rowsToFit,varargin)
+%fitLagParameters Fits dot lag parameter (lag time) to other data and save the results
 %   Inputs:
-%       parameters = filtering and other analysis parameters
+%       excelFile
+%       rowsToRead = rows that will be used to get parameters to fit for
+%       later time points.
+%       rowsToFit = rows that will be fitted
+%       parameters (optional) = filtering and other analysis parameters
 %           .lowpass = low pass filter thr (if empty, no low pass)
 %           .highpass = high pass filter thr (if empty, no high pass)
 
@@ -37,7 +41,7 @@ import mouse.*
 
 %% read the excel file to get the list of file names
 
-trialInfo = expSpecific.extractExcel(excelFile,rows);
+trialInfo = expSpecific.extractExcel(excelFile,rowsToFit);
 
 saveFileLocs = trialInfo.saveFolder;
 saveFileMaskNames = trialInfo.saveFilePrefixMask;
@@ -69,22 +73,39 @@ end
 
 saveFileLoc = fileparts(saveFileLocs(1));
 [~,excelFileName,~] = fileparts(excelFile);
-lagFile = fullfile(saveFileLoc,...
-    strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-dotLagHbTG6-",freqStr,".mat"));
 
-lagTime = [];
+% file containing parameters that will be fitted
+lagFile = fullfile(saveFileLoc,...
+    strcat(string(excelFileName),"-rows",num2str(min(rowsToRead)),...
+    "~",num2str(max(rowsToRead)),"-dotLagHbTG6-",freqStr,".mat"));
+
+% file that fit result will be saved to.
+fitFile = fullfile(saveFileLoc,...
+    strcat(string(excelFileName),"-rows",num2str(min(rowsToFit)),...
+    "~",num2str(max(rowsToFit)),"-dotLagFitHbTG6-",freqStr,".mat"));
+
+% load parameter
+load(lagFile);
+lagTime(lagAmp < 0.3) = nan;
+lagTime = nanmean(lagTime,3);
+fluordata = load(fluorFiles(1)); fs = fluordata.readerInfo.FreqOut;
+lagSamples = lagTime.*fs;
+lagSamples = round(lagSamples);
+
+% get maxLag parameter
+maxLag = round(tZone*fs);
+
 lagAmp = [];
 mask = [];
 
-if exist(lagFile)
-    load(lagFile);
+if exist(fitFile)
+    load(fitFile);
 else
     for trialInd = 1:trialNum
         disp(['Trial # ' num2str(trialInd)]);
         
         dotLagFile = fullfile(saveFileLocs(trialInd),...
-            strcat(saveFileDataNames(trialInd),"-dotLagHbTG6-",freqStr,".mat"));
+            strcat(saveFileDataNames(trialInd),"-dotLagFitHbTG6-",freqStr,".mat"));
         
         maskTrial = load(maskFiles(trialInd));
         maskTrial = maskTrial.xform_isbrain;
@@ -128,44 +149,47 @@ else
             data1 = data1(:,:,time >= parameters.startTime);
             data2 = squeeze(xform_datafluorCorr);
             data2 = data2(:,:,time >= parameters.startTime);
-            [lagTimeTrial,lagAmpTrial,covResult] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
-            lagTimeTrial = lagTimeTrial./fs;
+            [~,lagAmpTrial,covResult] = mouse.conn.dotLag(data1,data2,edgeLen,maxLag,corrThr);
+            
+            for y = 1:128
+                for x = 1:128
+                    ind = mouse.math.matCoor2Ind([y,x],[128 128]);
+                    if isnan(lagSamples(y,x))
+                        lagAmpTrial(y,x) = nan;
+                    else
+                        lagAmpTrial(y,x) = covResult(ind,maxLag + 1 + lagSamples(y,x));
+                    end
+                end
+            end
+            
+            % z score correlation
+            lagAmpTrial = atanh(lagAmpTrial); lagAmpTrial = real(lagAmpTrial);
             
             % save lag data
-            save(dotLagFile,'lagTimeTrial','lagAmpTrial','tZone','corrThr','edgeLen');
+            save(dotLagFile,'lagAmpTrial','tZone','corrThr','edgeLen');
         end
         
         % plot lag
-        dotLagFig = figure('Position',[100 100 900 400]);
-        p = panel();
-        p.pack();
-        p(1).pack(1,2);
-        p(1,1,1).select(); imagesc(lagTimeTrial,'AlphaData',maskTrial,[0 tLim]); axis(gca,'square');
-        xlim([1 size(lagTimeTrial,1)]); ylim([1 size(lagTimeTrial,2)]);
-        set(gca,'ydir','reverse'); colorbar; colormap('jet');
-        set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Time (s)');
-        p(1,1,2).select(); imagesc(lagAmpTrial,'AlphaData',maskTrial,[0.3 1]); axis(gca,'square');
+        dotLagFig = figure('Position',[100 100 4500 400]);
+        imagesc(lagAmpTrial,'AlphaData',maskTrial,[0.3 2]); axis(gca,'square');
         xlim([1 size(lagAmpTrial,1)]); ylim([1 size(lagAmpTrial,2)]);
         set(gca,'ydir','reverse'); colorbar; colormap('jet');
         set(gca,'XTick',[]); set(gca,'YTick',[]); title('Lag Amp');
         
         % save lag figure
         dotLagFigFile = fullfile(saveFileLocs(trialInd),...
-            strcat(saveFileDataNames(trialInd),"-dotLagHbTG6-",freqStr,".fig"));
+            strcat(saveFileDataNames(trialInd),"-dotLagFitHbTG6-",freqStr,".fig"));
         savefig(dotLagFig,dotLagFigFile);
         close(dotLagFig);
         
-        lagTime = cat(3,lagTime,lagTimeTrial);
         lagAmp = cat(3,lagAmp,lagAmpTrial);
         mask = cat(3,mask,maskTrial);
     end
     % save lag data
-    save(lagFile,'lagTime','lagAmp','mask','tZone','corrThr','edgeLen');
+    save(fitFile,'lagAmp','mask','tZone','corrThr','edgeLen');
 end
 
 %% plot average across trials
-
-lagAmp = atanh(lagAmp); lagAmp = real(lagAmp);
 
 load('L:\ProcessedData\noVasculatureMask.mat');
 wlData = load('L:\ProcessedData\wl.mat');
@@ -179,30 +203,10 @@ alphaData = alphaData >= 0.5;
 alphaData = alphaData & (leftMask | rightMask);
 
 % roi time course
-dotLagFig = figure('Position',[100 100 400 650]);
-p = panel();
-p.margintop = 10;
-p.marginright = 10;
-p.pack();
-p(1).pack(2,1);
-p(1,1,1).select(); 
+dotLagFig = figure('Position',[100 100 400 325]);
+image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 set(gca,'Color','k');
 set(gca,'FontSize',16);
-image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
-hold on;
-goodPix = sum(lagAmp > 0.5943,3)./sum(mask,3) > 0.5;
-imagesc(nanmean(lagTime,3),'AlphaData',alphaData & goodPix,[0 tLim]); axis(gca,'square');
-xlim([1 size(lagTime,1)]); ylim([1 size(lagTime,2)]);
-set(gca,'ydir','reverse'); colorbar; colormap('jet');
-set(gca,'XTick',[]); set(gca,'YTick',[]);
-P = mask2poly(infarctroi);
-plot(P.X,P.Y,'k','LineWidth',3);
-hold off;
-
-p(1,2,1).select();
-set(gca,'Color','k');
-set(gca,'FontSize',16);
-image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 hold on;
 imagesc(nanmean(lagAmp,3),'AlphaData',alphaData,[0.3 2]); axis(gca,'square');
 xlim([1 size(lagAmp,1)]); ylim([1 size(lagAmp,2)]);
@@ -214,8 +218,8 @@ hold off;
 
 % save lag figure
 dotLagFigFile = fullfile(saveFileLoc,...
-    strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-dotLagHbTG6-",freqStr,".fig"));
+    strcat(string(excelFileName),"-rows",num2str(min(rowsToFit)),...
+    "~",num2str(max(rowsToFit)),"-dotLagFitHbTG6-",freqStr,".fig"));
 savefig(dotLagFig,dotLagFigFile);
 close(dotLagFig);
 
