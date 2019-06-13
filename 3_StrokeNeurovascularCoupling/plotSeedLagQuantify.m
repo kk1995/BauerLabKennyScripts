@@ -4,26 +4,26 @@ excelFile = fullfile('D:\data','zach_gcamp_stroke_fc_trials.xlsx');
 rowList{1} = 2:43;
 rowList{2} = 44:83;
 rowList{3} = 84:125;
-rowList{4} = 126:167;
+rowList{4} = [126:141 143:167];
 
 sR = 16.8;
 saveFolder = "L:\ProcessedData\3_NeurovascularCoupling";
 
 load('L:\ProcessedData\gcampStimROI.mat'); %stimROIAll
 stimROIAll = logical(stimROIAll);
-roi = squeeze(stimROIAll(:,:,2,1));
-seedInd = find(roi);
+seedROI = squeeze(stimROIAll(:,:,2,1));
+seedInd = find(seedROI);
 
 %%
 
-fMin = 0.01;
-fMax = 0.08;
+fMin = 0.5;
+fMax = 4;
 
 freqStr = [num2str(fMin),'-',num2str(fMax)];
 freqStr(strfind(freqStr,'.')) = 'p';
 freqStr = string(freqStr);
 
-seedSize = numel(seedInd);
+seedSize = numel(seedInd); seedSize = 137;
 seedStart = seedInd(1);
 
 postFix = strcat(freqStr, '-', num2str(seedStart), '-', num2str(seedSize));
@@ -68,9 +68,9 @@ for groupInd = 1:4
         if ~contains(prevMouseName,mouseName)
             lagTimeHb{groupInd} = cat(3,lagTimeHb{groupInd},nanmean(lagTimeHbMouse,3));
             lagTimeFluor{groupInd} = cat(3,lagTimeFluor{groupInd},nanmean(lagTimeFluorMouse,3));
-            x = atanh(nanmean(lagAmpHbMouse,3)); x(isinf(x)) = nan;
+            x = lagAmpHbMouse; x(isinf(x)) = nan; x = nanmean(x,3);
             lagAmpHb{groupInd} = cat(3,lagAmpHb{groupInd},x);
-            x = atanh(nanmean(lagAmpFluorMouse,3)); x(isinf(x)) = nan;
+            x = lagAmpFluorMouse; x(isinf(x)) = nan; x = nanmean(x,3);
             lagAmpFluor{groupInd} = cat(3,lagAmpFluor{groupInd},x);
             
             lagTimeHbMouse = [];
@@ -92,18 +92,22 @@ for groupInd = 1:4
     
     lagTimeHb{groupInd} = cat(3,lagTimeHb{groupInd},nanmean(lagTimeHbMouse,3));
     lagTimeFluor{groupInd} = cat(3,lagTimeFluor{groupInd},nanmean(lagTimeFluorMouse,3));
-    x = atanh(nanmean(lagAmpHbMouse,3)); x(isinf(x)) = nan;
+    x = lagAmpHbMouse; x(isinf(x)) = nan; x = nanmean(x,3);
     lagAmpHb{groupInd} = cat(3,lagAmpHb{groupInd},x);
-    x = atanh(nanmean(lagAmpFluorMouse,3)); x(isinf(x)) = nan;
+    x = lagAmpFluorMouse; x(isinf(x)) = nan; x = nanmean(x,3);
     lagAmpFluor{groupInd} = cat(3,lagAmpFluor{groupInd},x);
 end
 
 %% plot
 
-seedROI = squeeze(stimROIAll(:,:,2,1));
+close all;
 
-for contrast = 2
-    if contrast == 1
+contrast = 2;
+seedInd = 1; % lag relative to this seed
+roiInd = 4; % which roi do you care about
+
+for contrastInd = contrast
+    if contrastInd == 1
         lagTime = lagTimeHb;
         lagAmp = lagAmpHb;
     else
@@ -115,7 +119,7 @@ for contrast = 2
     
     load('L:\ProcessedData\gcampStimROI.mat'); %stimROIAll
     stimROIAll = logical(stimROIAll);
-    roi = squeeze(stimROIAll(:,:,1,1));
+    roi = squeeze(stimROIAll(:,:,seedInd,roiInd));
     
     lagTimeROI = cell(4,1);
     lagAmpROI = cell(4,1);
@@ -135,9 +139,13 @@ for contrast = 2
     [~,pValT(1)] = ttest2(lagTimeROI{1},lagTimeROI{2});
     [~,pValT(2)] = ttest2(lagTimeROI{1},lagTimeROI{3});
     [~,pValT(3)] = ttest2(lagTimeROI{1},lagTimeROI{4});
+    [~,pValT(4)] = ttest2(lagTimeROI{2},lagTimeROI{3});
+    [~,pValT(5)] = ttest2(lagTimeROI{3},lagTimeROI{4});
     [~,pValA(1)] = ttest2(lagAmpROI{1},lagAmpROI{2});
     [~,pValA(2)] = ttest2(lagAmpROI{1},lagAmpROI{3});
     [~,pValA(3)] = ttest2(lagAmpROI{1},lagAmpROI{4});
+    [~,pValA(4)] = ttest2(lagAmpROI{2},lagAmpROI{3});
+    [~,pValA(5)] = ttest2(lagAmpROI{3},lagAmpROI{4});
    
     % plot
     
@@ -162,6 +170,8 @@ for contrast = 2
     ylabel('lag time, seconds')
     sigstarExtended([1 2],pValT(1),0,fontSize); sigstarExtended([1 3],pValT(2),0,fontSize);
     sigstarExtended([1 4],pValT(3),0,fontSize);
+    sigstarExtended([2 3],pValT(4),0,fontSize);
+    sigstarExtended([3 4],pValT(5),0,fontSize);
     
     subplot('Position',[0.6 0.1 0.4 0.8]);
     H = notBoxPlot(x2,label);
@@ -172,5 +182,6 @@ for contrast = 2
     set(gca,'FontSize',14);
     ylabel('cross-correlation, z(r)')
     sigstarExtended([1 2],pValA(1),0,fontSize); sigstarExtended([1 3],pValA(2),0,fontSize);
-    sigstarExtended([1 4],pValA(3),0,fontSize);
+    sigstarExtended([1 4],pValA(3),0,fontSize); sigstarExtended([2 3],pValA(4),0,fontSize);
+    sigstarExtended([3 4],pValA(5),0,fontSize);
 end

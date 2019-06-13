@@ -15,9 +15,9 @@ xform_datafluor = mouse.process.gsr(xform_datafluor,xform_isbrain);
 xform_datafluorCorr = mouse.process.gsr(xform_datafluorCorr,xform_isbrain);
 
 % block avg
-[xform_datahb, blockTime] = mouse.preprocess.blockAvg(xform_datahb,rawTime,20,20*16.8);
-xform_datafluor = mouse.preprocess.blockAvg(xform_datafluor,rawTime,20,20*16.8);
-xform_datafluorCorr = mouse.preprocess.blockAvg(xform_datafluorCorr,rawTime,20,20*16.8);
+[xform_datahb, blockTime] = mouse.expSpecific.blockAvg(xform_datahb,rawTime,20,20*16.8);
+xform_datafluor = mouse.expSpecific.blockAvg(xform_datafluor,rawTime,20,20*16.8);
+xform_datafluorCorr = mouse.expSpecific.blockAvg(xform_datafluorCorr,rawTime,20,20*16.8);
 
 % remove baseline
 xform_datahb = bsxfun(@minus,xform_datahb,nanmean(xform_datahb(:,:,:,blockTime < 5),4));

@@ -15,13 +15,7 @@ function info = sysInfo(systemType)
 %           gbox = gaussian filter box size for smoothing image
 %           gsigma = gaussian filter sigma for smoothing image
 
-if strcmp(systemType,'fcOIS1')
-    info.rgb = [1 3 4];
-    info.numLEDs = 4;
-    info.invalidFrameInd = 1;
-    info.gbox = 5;
-    info.gsigma = 1.2;
-elseif strcmp(systemType,'fcOIS2')
+if strcmp(systemType,'fcOIS2')
     info.rgb = [4 2 1];
     info.numLEDs = 4;
     info.LEDFiles = {'150917_TL_470nm_Pol.txt',...
@@ -29,6 +23,7 @@ elseif strcmp(systemType,'fcOIS2')
         '150917_TL_590nm_Pol.txt'...
         '150917_TL_628nm_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'fcOIS2_Fluor')
@@ -39,6 +34,7 @@ elseif strcmp(systemType,'fcOIS2_Fluor')
         '150917_TL_590nm_Pol.txt'...
         '150917_TL_628nm_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'fcOIS2_Fluor2')
@@ -50,6 +46,7 @@ elseif strcmp(systemType,'fcOIS2_Fluor2')
         '140801_ThorLabs_625nm_NoPol.txt'};
     info.readFcn = @mouse.read.readTiff;
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'fcOIS3')
@@ -60,6 +57,7 @@ elseif strcmp(systemType,'fcOIS3')
         '150917_TL_590nm_Pol.txt'...
         '150917_TL_628nm_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'EastOIS1')
@@ -70,6 +68,7 @@ elseif strcmp(systemType,'EastOIS1')
         'East3410OIS1_TL_617_Pol.txt', ...
         'East3410OIS1_TL_625_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'EastOIS1+laser')
@@ -80,6 +79,7 @@ elseif strcmp(systemType,'EastOIS1+laser')
         'East3410OIS1_TL_617_Pol.txt', ...
         'East3410OIS1_TL_625_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
 elseif strcmp(systemType,'EastOIS1_Fluor')
@@ -90,16 +90,18 @@ elseif strcmp(systemType,'EastOIS1_Fluor')
         'East3410OIS1_TL_617_Pol.txt', ...
         'East3410OIS1_TL_625_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 16382];
     info.gbox = 5;
     info.gsigma = 1.2;
-elseif strcmp(systemType,'EastOIS2_Fluor')
+elseif strcmp(systemType,'EastOIS2')
     info.rgb = [4 3 NaN];
     info.numLEDs = 4;
-    info.LEDFiles = {'M470nm_SPF_pol.txt', ...
-        'TL530nm_pol.txt', ...
-        'East3410OIS1_TL_617_Pol.txt', ...
-        'East3410OIS1_TL_625_Pol.txt'};
+    info.LEDFiles = {'TwoCam_Mightex470_BP_Pol.txt', ...
+        'TwoCam_Mightex525_BP_Pol.txt', ...
+        'TwoCam_Mightex525_BP_Pol.txt', ...
+        'TwoCam_TL625_Pol.txt'};
     info.invalidFrameInd = 1;
+    info.validThr = [1 inf];
     info.gbox = 5;
     info.gsigma = 1.2;
 end

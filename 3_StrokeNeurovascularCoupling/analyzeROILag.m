@@ -113,7 +113,7 @@ for trialInd = 1:trialNum
     raw = cat(3,xform_datahb,xform_datafluorCorr);
     blockLen = blockDesign.off + blockDesign.on + blockDesign.off2;
     blockCut = round(fs*blockLen);
-    [blockData, blockTime] = mouse.preprocess.blockAvg(raw,time,blockLen,blockCut);
+    [blockData, blockTime] = mouse.expSpecific.blockAvg(raw,time,blockLen,blockCut);
     stimInd = blockTime > blockDesign.off + blockDesign.on - 1 & ...
         blockTime < blockDesign.off + blockDesign.on + 1;
     stimResponse = mean(blockData(:,:,:,stimInd),4); % 128 x 128 x 3

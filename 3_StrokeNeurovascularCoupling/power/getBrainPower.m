@@ -5,11 +5,8 @@ function [f,y] = getBrainPower(data,mask,sR)
 data = reshape(data,[],size(data,3));
 data = data(mask(:),:);
 
-y = fft(data,[],2);
-y = abs(y);
-y = nanmean(y,1);
+[y,f] = pwelch(data',sR);
+y = nanmean(y,2);
 y = squeeze(y);
-
-f = linspace(0,sR,numel(y));
 end
 

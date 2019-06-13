@@ -57,8 +57,8 @@ for trial = 1:trialNum
         end
         % make block avg
         fs = readerInfo.FreqOut;
-        [hbBlock, hbTime] = mouse.preprocess.blockAvg(xform_datahb,rawTime,blockLen,fs*blockLen);
-        [fluorBlock, fluorTime] = mouse.preprocess.blockAvg(xform_datafluorCorr,rawTime,blockLen,fs*blockLen);
+        [hbBlock, hbTime] = mouse.expSpecific.blockAvg(xform_datahb,rawTime,blockLen,fs*blockLen);
+        [fluorBlock, fluorTime] = mouse.expSpecific.blockAvg(xform_datafluorCorr,rawTime,blockLen,fs*blockLen);
         preStimHb = mean(hbBlock(:,:,:,hbTime < stimStart),4);
         hbBlock = bsxfun(@minus,hbBlock,preStimHb);
         preStimFluor = mean(fluorBlock(:,:,:,fluorTime < stimStart),4);

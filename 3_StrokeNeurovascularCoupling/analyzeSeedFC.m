@@ -1,18 +1,25 @@
-function analyzeSeedFC(excelFile,rows,seedInd,varargin)
+function analyzeSeedFC(excelFile,rows,varargin)
 %analyzeSeedFC Analyze fc relative to seed and save the results
 %   Inputs:
 %       excelFile = directory to excel file to be read
 %       rows = which rows in excel file will be read
-%       seedInd = vectorized indices on image that will be used as seed.
+%       seedInd (optional) = vectorized indices on image that will be used as seed.
 %       parameters (optional) = filtering and other analysis parameters
 %           .lowpass = low pass filter thr (if empty, no low pass)
 %           .highpass = high pass filter thr (if empty, no high pass)
 % assumes that the frame rate for the trials is the same
 
-seedInd = sort(seedInd);
-
 if numel(varargin) > 0
-    parameters = varargin{1};
+    seedInd = varargin{1};
+    seedInd = sort(seedInd);
+else
+    load('L:\ProcessedData\gcampStimROI.mat');
+    stimROIAll = logical(stimROIAll);
+    seedInd = find(squeeze(stimROIAll(:,:,2,1)));
+end
+
+if numel(varargin) > 1
+    parameters = varargin{2};
 else
     parameters.lowpass = 0.08; %1/30 Hz
     parameters.highpass = 0.01;
@@ -33,8 +40,8 @@ else
     aLimHb = [-1 1];
     aLimFluor = [-1 1];
     if parameters.highpass >= 0.5
-        aLimHb = [-1 1];
-    aLimFluor = [-1 1];
+        aLimHb = [-0.5 0.5];
+        aLimFluor = [-0.5 0.5];
     end
 end
 
@@ -172,26 +179,23 @@ else
         end
         
         % make plots
-        trialFigFile1 = fullfile(saveFileLocs(trialInd),...
+        trialFigTrialFile = fullfile(saveFileLocs(trialInd),...
             strcat(saveFileDataNames(trialInd),"-seedFCHbT-",postFix,".fig"));
-        trialFig = figure('Position',[100 100 500 400]);
+        trialFig = figure('Position',[100 100 400 800]);
+        subplot('Position',[0.05 0.52 0.9 0.4]);
         imagesc(fcHbTrial,'AlphaData',maskTrial,aLimHb); axis(gca,'square');
         xlim([1 xSize]); ylim([1 ySize]);
         set(gca,'ydir','reverse'); colorbar; colormap('jet');
-        set(gca,'XTick',[]); set(gca,'YTick',[]);
+        set(gca,'XTick',[]); set(gca,'YTick',[]); pause(0.1);
         hold on; mouse.plot.plotContour(gca,roiPlot,'k','-',4);
-        savefig(trialFig,trialFigFile1);
-        close(trialFig);
         
-        trialFigFile2 = fullfile(saveFileLocs(trialInd),...
-            strcat(saveFileDataNames(trialInd),"-seedFCG6-",postFix,".fig"));
-        trialFig = figure('Position',[100 100 500 400]);
+        subplot('Position',[0.05 0.1 0.9 0.4]);
         imagesc(fcFluorTrial,'AlphaData',maskTrial,aLimFluor); axis(gca,'square');
         xlim([1 xSize]); ylim([1 ySize]);
         set(gca,'ydir','reverse'); colorbar; colormap('jet');
-        set(gca,'XTick',[]); set(gca,'YTick',[]);
+        set(gca,'XTick',[]); set(gca,'YTick',[]); pause(0.1);
         hold on; mouse.plot.plotContour(gca,roiPlot,'k','-',4);
-        savefig(trialFig,trialFigFile2);
+        savefig(trialFig,trialFigTrialFile);
         close(trialFig);
         
         % concatenate over trials
@@ -217,26 +221,24 @@ alphaData = nanmean(mask,3);
 alphaData = alphaData >= 0.5;
 alphaData = alphaData & (leftMask | rightMask);
 
-trialFigFile1 = fullfile(saveFileLoc,...
+trialFigFile = fullfile(saveFileLoc,...
     strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-seedFCHbT-",postFix,".fig"));
-trialFig = figure('Position',[100 100 500 400]);
+    "~",num2str(max(rows)),"-seedFC-",postFix,".fig"));
+trialFig = figure('Position',[100 100 400 800]);
+s = subplot('Position',[0.05 0.52 0.9 0.4]);
 image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 hold on;
-set(gca,'Color','k');
-set(gca,'FontSize',16);
+set(s,'Color','k');
+set(s,'FontSize',16);
 imagesc(nanmean(fcHb,3),'AlphaData',alphaData,aLimHb); axis(gca,'square');
 xlim([1 xSize]); ylim([1 ySize]);
-set(gca,'ydir','reverse'); colorbar; colormap('jet');
-set(gca,'XTick',[]); set(gca,'YTick',[]);
-hold on; mouse.plot.plotContour(gca,roiPlot,'k','-',4);
-savefig(trialFig,trialFigFile1);
-close(trialFig);
+set(s,'ydir','reverse'); colorbar; colormap('jet');
+set(s,'XTick',[]); set(s,'YTick',[]);
+pause(0.1);
+hold on; mouse.plot.plotContour(s,roiPlot,'k','-',4);
 
-trialFigFile2 = fullfile(saveFileLoc,...
-    strcat(string(excelFileName),"-rows",num2str(min(rows)),...
-    "~",num2str(max(rows)),"-seedFCG6-",postFix,".fig"));
-trialFig = figure('Position',[100 100 500 400]);
+
+subplot('Position',[0.05 0.1 0.9 0.4]);
 image(wlData.xform_wl,'AlphaData',wlData.xform_isbrain);
 hold on;
 set(gca,'Color','k');
@@ -245,8 +247,10 @@ imagesc(nanmean(fcFluor,3),'AlphaData',alphaData,aLimFluor); axis(gca,'square');
 xlim([1 xSize]); ylim([1 ySize]);
 set(gca,'ydir','reverse'); colorbar; colormap('jet');
 set(gca,'XTick',[]); set(gca,'YTick',[]);
+pause(0.1);
 hold on; mouse.plot.plotContour(gca,roiPlot,'k','-',4);
-savefig(trialFig,trialFigFile2);
+
+savefig(trialFig,trialFigFile);
 close(trialFig);
 
 

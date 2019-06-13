@@ -6,9 +6,9 @@ function analyzeGammaFit(excelFile,rows,varargin)
 
 cLimR = [0.3 1.5];
 cLimR2 = [0 0.8];
-cLimA = [0 2E-3];
-cLimT = [0 1];
-cLimW = [0 6];
+cLimA = [0 2E-4];
+cLimT = [0 0.5];
+cLimW = [0 1];
 
 if numel(varargin) > 0
     parameters = varargin{1};

@@ -15,14 +15,14 @@ for fileInd = 1:numel(dataFile)
     fileData = load(dataFile(fileInd));
     
     stimTime = fileData.blockTime > 9 & fileData.blockTime < 11;
-    response = cat(3,response,squeeze(mean(sum(mean(fileData.hbBlock(:,:,:,stimTime,:),5),3),4)));
-%     response = cat(3,response,squeeze(mean(sum(mean(fileData.fluorBlock(:,:,:,stimTime,:),5),3),4)));
+%     response = cat(3,response,squeeze(mean(sum(mean(fileData.hbBlock(:,:,:,stimTime,:),5),3),4)));
+    response = cat(3,response,squeeze(mean(sum(mean(fileData.fluorBlock(:,:,:,stimTime,:),5),3),4)));
 end
 
 %% plot
 
-cLim = [-1 1]*1E-6;
-% cLim = [-1 1]*0.3E-2;
+% cLim = [-1 1]*1E-6;
+cLim = [-1 1]*0.3E-2;
 
 load('L:\ProcessedData\noVasculatureMask.mat');
 wlData = load('L:\ProcessedData\wl.mat');

@@ -4,7 +4,7 @@ excelFile = fullfile('D:\data','zach_gcamp_stroke_fc_trials.xlsx');
 rowList{1} = 2:43;
 rowList{2} = 44:83;
 rowList{3} = 84:125;
-rowList{4} = 126:167;
+rowList{4} = [126:141 143:167];
 
 sR = 16.8;
 saveFolder = "L:\ProcessedData\3_NeurovascularCoupling";
@@ -55,7 +55,7 @@ for groupInd = 1:4
         
         if ~contains(prevMouseName,mouseName)
             lagTime{groupInd} = cat(3,lagTime{groupInd},nanmean(lagTimeMouse,3));
-            x = atanh(nanmean(lagAmpMouse,3)); x(isinf(x)) = nan;
+            x = atanh(lagAmpMouse); x = real(x); x(isinf(x)) = nan; x = nanmean(x,3);
             lagAmp{groupInd} = cat(3,lagAmp{groupInd},x);
             lagTimeMouse = [];
             lagAmpMouse = [];
@@ -71,7 +71,7 @@ for groupInd = 1:4
     end
     
     lagTime{groupInd} = cat(3,lagTime{groupInd},nanmean(lagTimeMouse,3));
-    x = atanh(nanmean(lagAmpMouse,3)); x(isinf(x)) = nan;
+    x = atanh(lagAmpMouse); x = real(x); x(isinf(x)) = nan; x = nanmean(x,3);
     lagAmp{groupInd} = cat(3,lagAmp{groupInd},x);
     
 end
@@ -80,7 +80,7 @@ end
 
 load('L:\ProcessedData\gcampStimROI.mat'); %stimROIAll
 stimROIAll = logical(stimROIAll);
-roi = squeeze(stimROIAll(:,:,1,1));
+roi = squeeze(stimROIAll(:,:,1,4));
 
 lagTimeROI = cell(4,1);
 lagAmpROI = cell(4,1);
@@ -122,7 +122,7 @@ set([H(:).data],'MarkerSize',4,...
     'markerFaceColor',[1,1,1]*0.25,...
     'markerEdgeColor', 'none');
 set(gca,'XTickLabel',{'baseline','week 1','week 4','week 8'});
-set(gca,'FontSize',14);
+set(gca,'FontSize',18);
 ylabel('lag time, seconds')
 sigstarExtended([1 2],pValT(1),0,fontSize); sigstarExtended([1 3],pValT(2),0,fontSize);
 sigstarExtended([1 4],pValT(3),0,fontSize);
@@ -133,7 +133,7 @@ set([H(:).data],'MarkerSize',4,...
     'markerFaceColor',[1,1,1]*0.25,...
     'markerEdgeColor', 'none');
 set(gca,'XTickLabel',{'baseline','week 1','week 4','week 8'});
-set(gca,'FontSize',14);
+set(gca,'FontSize',18);
 ylabel('cross-correlation, z(r)')
 sigstarExtended([1 2],pValA(1),0,fontSize); sigstarExtended([1 3],pValA(2),0,fontSize);
 sigstarExtended([1 4],pValA(3),0,fontSize);

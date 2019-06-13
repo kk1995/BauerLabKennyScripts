@@ -1,51 +1,77 @@
-function exampleGcamp(excelFile,rows)
+function exampleFAD(excelFile,rows)
 
 % this function gives an example of how excel file is read, the data is
-% loaded, invalid frames are removed, and processed to save hemoglobin
-% dynamics data.
+% loaded, invalid frames are removed, and processed to save hemoglobin and
+% fluorescence dynamics data.
+% The excel file uses the format Annie uses, which has one mouse data per
+% row and minimal amount of information about sampling rate and other
+% parameters. Thus, some of these parameters are assumed and hardcoded
+% here.
+%
+% Inputs:
+%   excelFile = character array of the excel file to be read
+%   rows = which rows in the excel file should be read and processed?
+
+%% parameters
+numCh = 4; % reader parameter. how many channels in image file?
+hbChInd = 2:4; % which channels should be used for hemoglobin?
+fluorChInd = 1; % which channel should be used for fluorescence?
+fluorEmissionTxtFile = 'fad_emission.txt'; % text file for describing fluorophore emission spectra
+numDarkFramesDefault = 0; % how many dark frames by default?
+detrendHb = true; % should raw data for hemoglobin be temporally detrended?
+detrendFluor = true; % should raw data for fluorescence be temporally detrended?
+saveRaw = false; % should raw data (downsampled) be saved?
 
 %% read excel file to get information about each mouse run
 
-[~,~,excelData] = xlsread(excelFile,1,['A1:' xlscol(12) num2str(max(rows))]);
+excelData = readtable(excelFile);
 
 runInd = 0;
-for row = rows % for each row of excel file
-    dataLoc = fullfile(excelData{row,3}); % where raw data is located
-    dataFile = excelData{row,4};
-    saveLoc = fullfile(excelData{row,5});
-    darkFrameNum = excelData{row,12};
-    if isnan(darkFrameNum)
-        darkFrameNum = 0;
+for row = rows-1 % for each row of excel file
+    rawDataLoc = excelData{row,'RawDataLocation'}; rawDataLoc = rawDataLoc{1};
+    recDate = num2str(excelData{row,'Date'});
+    saveLoc = excelData{row,'SaveLocation'}; saveLoc = saveLoc{1};
+    mouseName = excelData{row,'Mouse'}; mouseName = mouseName{1};
+    sessionType = excelData{row,'Session'}; sessionType = sessionType{1}(3:end-2);
+    system = excelData{row,'System'}; system = system{1};
+    samplingRate = excelData{row,'SamplingRate'};
+    if sum(~cellfun(@isempty,strfind(excelData.Properties.VariableNames,'NumDarkFrames'))) > 0
+        numDarkFrames = excelData{row,'NumDarkFrames'};
+    else
+        numDarkFrames = numDarkFramesDefault;
     end
     
-    systemType = excelData{row,8};
-    sessionType = excelData{row,9};
-    saveMaskName = excelData{row,6}; saveDataName = excelData{row,7};
+    dataLoc = fullfile(rawDataLoc,recDate); % where raw data is located
+    D = dir(dataLoc); D(1:2) = [];
     
-    runInd = runInd + 1;
-    runInfo(runInd).rawFile = fullfile(dataLoc,dataFile);
-    runInfo(runInd).saveMaskFilePrefix = fullfile(saveLoc,saveMaskName);
-    runInfo(runInd).saveDataFilePrefix = fullfile(saveLoc,saveDataName);
-    runInfo(runInd).samplingRate = excelData{row,10};
-    runInfo(runInd).processingRate = excelData{row,11};
-    runInfo(runInd).system = systemType;
-    runInfo(runInd).session = sessionType;
-    runInfo(runInd).darkFrameInd = 1:darkFrameNum;
+    for file = 1:numel(D) % for each file
+        validFile = contains(D(file).name,mouseName) && contains(D(file).name,sessionType);
+        if validFile % if the right data file
+            runInd = runInd + 1;
+            
+            saveFileName = D(file).name; saveFileName = saveFileName(1:end-4);
+            saveMaskPrefix = strfind(saveFileName,'-'); saveMaskPrefix = saveFileName(1:saveMaskPrefix(end)-1);
+            saveDataPrefix = saveFileName;
+            
+            runInfo(runInd).rawFile = fullfile(D(file).folder,D(file).name);
+            runInfo(runInd).saveMaskFilePrefix = fullfile(saveLoc,...
+                recDate,saveMaskPrefix);
+            runInfo(runInd).saveDataFilePrefix = fullfile(saveLoc,...
+                recDate,saveDataPrefix);
+            runInfo(runInd).samplingRate = samplingRate;
+            runInfo(runInd).system = system;
+            runInfo(runInd).session = sessionType;
+            runInfo(runInd).darkFramesInd = 1:numDarkFrames;
+        end
+    end
 end
 
 % provide information about the processing stream
 paramPath = what('bauerParams'); % path to bauerParams module
 sourceSpectraLoc = fullfile(paramPath.path,'ledSpectra'); % path to led spectra text files
-extCoeffFile = string(fullfile(paramPath.path,'prahl_extinct_coef.txt'));
-numCh = 4; % reader parameter. how many channels in image file?
-hbChInd = 2:4; % which channels should be used for hemoglobin?
-fluorChInd = 1; % which channel should be used for fluorescence?
-invalidFrameInd = 1; % which time frame should be removed (not even used for dark frame calculation)
-% darkFrameInd = []; % which time frame is dark frame?
-detrendHb = true; % should raw data for hemoglobin be temporally detrended?
-detrendFluor = true; % should raw data for fluorescence be temporally detrended?
+extCoeffFile = fullfile(paramPath.path,'prahl_extinct_coef.txt');
+fluorSpectraFile = cellstr(fullfile(paramPath.path,'probeSpectra',fluorEmissionTxtFile)); % which file describes fluor emission spectra
 muspFcn = @(x,y) (40*(x/500).^-1.16)'*y; % parametric equation for reduced scattering coefficient
-saveRaw = false; % should raw data (downsampled) be saved?
 
 %% run wl generation for each trial
 disp('get wl image and mask');
@@ -58,17 +84,18 @@ for runInd = 1:runNum % for each run
     % find the full mask file directory. This file will be checked for
     % mask. If this file does not exist, following if/else statement
     % creates the file.
-    maskFileName = strcat(runInfo(runInd).saveMaskFilePrefix,"-LandmarksandMask.mat");
+    maskFileName = [runInfo(runInd).saveMaskFilePrefix,'-LandmarksandMask.mat'];
     saveFolder = fileparts(maskFileName);
     
     systemInfo = sysInfo(runInfo(runInd).system); % find information about the system
     rgbOrder = systemInfo.rgb; % which channels are red, green, and blue?
+    invalidFrameInd = systemInfo.invalidFrameInd;
     
     % instantiate VideosReader - reads the raw files to output matrix
     reader = mouse.read.VideosReader();
     reader.ReaderObject = mouse.read.TiffVideoReader;
     reader.ChNum = numCh;
-    reader.DarkFrameInd = runInfo(runInd).darkFrameInd;
+    reader.DarkFrameInd = runInfo(runInd).darkFramesInd;
     reader.InvalidInd = invalidFrameInd;
     reader.FreqIn = runInfo(runInd).samplingRate;
     reader.FreqOut = runInfo(runInd).samplingRate;
@@ -95,22 +122,28 @@ for runInd = 1:runNum
     maskFileName = [runInfo(runInd).saveMaskFilePrefix,'-LandmarksandMask.mat']; % mask file to save'
     dataFileName = runInfo(runInd).rawFile;
     saveFileRaw = [runInfo(runInd).saveDataFilePrefix,'-raw.mat']; % raw file to save
+    saveFigRawQC = [runInfo(runInd).saveDataFilePrefix,'-rawQC.fig']; % raw file to save
+    saveFigFCQC = [runInfo(runInd).saveDataFilePrefix,'-fcQC.fig']; % raw file to save
     saveFileDataHb = [runInfo(runInd).saveDataFilePrefix,'-datahb.mat']; % hemoglobin file to save
     saveFileDataFluor = [runInfo(runInd).saveDataFilePrefix,'-datafluor.mat']; % hemoglobin file to save
     saveFolder = fileparts(dataFileName);
     
-    systemInfo = mouse.expSpecific.sysInfo(runInfo(runInd).system); % find information about the system
-    sessionInfo = sesInfo(runInfo(runInd).session);
+    systemInfo = sysInfo(runInfo(runInd).system); % find information about the system
     ledFiles = systemInfo.LEDFiles; % which channels are red, green, and blue?
-    
-    fs = runInfo(runInd).processingRate;
+    invalidFrameInd = systemInfo.invalidFrameInd;
+    validThr = systemInfo.validThr;
+    sessionType = runInfo(runInd).session;
+    fs = runInfo(runInd).samplingRate;
     
     % get led files
-    hbLEDFiles = ledFiles(hbChInd);
-    fluorLEDFiles = ledFiles(fluorChInd);
-    
-    % get spectra file
-    fluorSpectraFile = string(fullfile(paramPath.path,'probeSpectra',sessionInfo.probeEmissionFile)); % which file describes fluor emission spectra
+    for i = 1:numel(hbChInd)
+        chInd = hbChInd(i);
+        hbLEDFiles{i} = fullfile(sourceSpectraLoc,ledFiles{chInd});
+    end
+    for i = 1:numel(fluorChInd)
+        chInd = fluorChInd(i);
+        fluorLEDFiles{i} = fullfile(sourceSpectraLoc,ledFiles{chInd});
+    end
     
     % load mask
     mask = load(maskFileName);
@@ -120,10 +153,10 @@ for runInd = 1:runNum
     reader = mouse.read.VideosReader();
     reader.ReaderObject = mouse.read.TiffVideoReader; % which raw file reader should be used? (tiff, dat)
     reader.ChNum = numCh; % how many channels?
-    reader.DarkFrameInd = runInfo(runInd).darkFrameInd; % which time frames are dark?
+    reader.DarkFrameInd = runInfo(runInd).darkFramesInd; % which time frames are dark?
     reader.InvalidInd = invalidFrameInd; % which time frames are invalid?
-    reader.FreqIn = runInfo(runInd).samplingRate; % what is the sampling rate of raw data?
-    reader.FreqOut = runInfo(runInd).processingRate; % what should be the output sampling rate?
+    reader.FreqIn = fs; % what is the sampling rate of raw data?
+    reader.FreqOut = fs; % what should be the output sampling rate?
     
     % get optical properties of hemoglobin
     hbOP = mouse.physics.OpticalProperty();
@@ -157,43 +190,38 @@ for runInd = 1:runNum
     fluorProc.OpticalPropertyOut = fluorOutOP;
     
     disp('read');
-    tic;
+    % use reader object to read the data files
     [raw,rawTime] = reader.read(dataFileName);
-    disp(['took ' num2str(toc) ' seconds.']);
-    
-    disp('quality control');
-    tic;
-    % check for movement
-%     invalidData = mouse.qc.checkRange(raw,validThr);
-%     frameCorr = mouse.qc.checkMovement(squeeze(raw(:,:,hbChInd(1),:)));
-    disp(['took ' num2str(toc) ' seconds.']);
     
     disp('process hb');
-    tic;
+    % output hb data from led intensity data
     datahb = hbProc.process(raw(:,:,hbChInd,:));
-    disp(['took ' num2str(toc) ' seconds.']);
     
     disp('process fluor');
-    tic;
-    [datafluorCorr, datafluor] = fluorProc.process(raw(:,:,fluorChInd,:),datahb);
-    disp(['took ' num2str(toc) ' seconds.']);
+    % output fluor data from led intensity data
+    datafluorCorr = fluorProc.process(raw(:,:,fluorChInd,:),datahb);
     
     disp('affine transform');
-    tic;
     xform_datahb = mouse.process.affineTransform(datahb,mask.I);
-    xform_datafluor = mouse.process.affineTransform(datafluor,mask.I);
     xform_datafluorCorr = mouse.process.affineTransform(datafluorCorr,mask.I);
     xform_isbrain = mouse.process.affineTransform(isbrain,mask.I);
-    disp(['took ' num2str(toc) ' seconds.']);
     
-    disp('filter and downsample');
-    xform_datahb = mouse.freq.filterData(xform_datahb,0.009,0.5,fs);
-    hbTime = min(rawTime):0.5:max(rawTime);
-    xform_datahb = mouse.freq.resampledata(xform_datahb,rawTime,hbTime);
-    fluorTime = rawTime;
+    disp('quality control');
+    % check for movement. These outputs are saved with processed data
+    invalidData = mouse.qc.checkRange(raw,validThr);
+    representativeCh = hbChInd(1);
+    qcRawFig = mouse.expSpecific.qcRaw(rawTime,raw,representativeCh);
+    savefig(qcRawFig,saveFigRawQC);
+    close(qcRawFig);
+    
+    % make qc fc fig if fc session
+    if contains(sessionType,'fc')
+        fcFig = mouse.expSpecific.qcFC(squeeze(sum(xform_datahb,3)),xform_isbrain,fs);
+        savefig(fcFig,saveFigFCQC);
+        close(fcFig);
+    end
     
     disp('save');
-    tic;
     warning('off','all')
     readerInfo = struct(reader);
     hbProcInfo = struct(hbProc);
@@ -206,17 +234,17 @@ for runInd = 1:runNum
     end
     
     if saveRaw
-        save(saveFileRaw,'dataFileName','readerInfo',...
+        save(saveFileRaw,'dataFileName','readerInfo','invalidData',...
             'rawTime','raw','-v7.3');
     end
     
     % save the processed data in hemoglobin data file
-    save(saveFileDataHb,'hbProcInfo','xform_isbrain','hbTime','xform_datahb','-v7.3');
+    save(saveFileDataHb,'dataFileName','hbProcInfo','fs',...
+        'isbrain','xform_isbrain','hbChInd','rawTime','xform_datahb','-v7.3');
     
     % save the processed fluor data in fluorescence data file
-    save(saveFileDataFluor,'fluorProcInfo','xform_isbrain',...
-        'fluorTime','xform_datafluor','xform_datafluorCorr','-v7.3');
-    disp(['took ' num2str(toc) ' seconds.']);
+    save(saveFileDataFluor,'dataFileName','fluorProcInfo','fs',...
+        'isbrain','xform_isbrain','fluorChInd','rawTime','xform_datafluorCorr','-v7.3');
 end
 
 end
@@ -231,7 +259,6 @@ badDataInd = unique([reader.DarkFrameInd reader.InvalidInd]);
 realDataStart = max(badDataInd) + 1;
 reader.LastTimeFrame = realDataStart;
 [raw,~] = reader.read(fileNames);
-raw = raw(:,:,:,size(raw,4));
 raw = single(raw);
 WL = mouse.process.getWL(raw,rgbOrder);
 affineMarkers = mouse.process.getLandmarks(WL);

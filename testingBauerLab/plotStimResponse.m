@@ -100,7 +100,7 @@ for trialInd = 1:trialNum
     
     blockDur = blockDesign.off + blockDesign.on + blockDesign.off2;
     
-    [blockDataTrial, blockTime] = preprocess.blockAvg(totalData,time,blockDur,blockDur);
+    [blockDataTrial, blockTime] = expSpecific.blockAvg(totalData,time,blockDur,blockDur);
     
     blockData = cat(5,blockData,blockDataTrial);
     
@@ -175,7 +175,7 @@ for trialInd = 1:trialNum
     roiTrial(clusters.PixelIdxList{maxClusterInd}) = true;
     
     % get roi response
-    [blockDataTrial, blockTime] = preprocess.blockAvg(totalData,time,blockDur,blockDur*fs);
+    [blockDataTrial, blockTime] = expSpecific.blockAvg(totalData,time,blockDur,blockDur*fs);
     
     roiDataTrial = reshape(blockDataTrial,size(blockDataTrial,1)*size(blockDataTrial,2),size(blockDataTrial,3),[]);
     roiDataTrial = squeeze(nanmean(roiDataTrial(roiTrial,:,:),1)); % species x time
