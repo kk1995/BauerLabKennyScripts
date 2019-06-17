@@ -112,7 +112,8 @@ else
         
         % gs lag
         data = squeeze(sum(xform_datahb,3));
-        [lagTimeHbTTrial,lagAmpHbTTrial,~] = mouse.conn.bilateralLag(data,edgeLen,round(tZone*fs),corrThr);
+        validRange = -round(tZone*fs):round(tZone*fs);
+        [lagTimeHbTTrial,lagAmpHbTTrial,~] = mouse.conn.bilateralLag(data,edgeLen,validRange,corrThr);
         lagTimeHbTTrial(lagAmpHbTTrial < 0) = nan;
         lagTimeHbTTrial = lagTimeHbTTrial./fs;
         
@@ -126,7 +127,7 @@ else
         
         % gs lag gcamp
         data = squeeze(xform_datafluorCorr);
-        [lagTimeG6Trial,lagAmpG6Trial,~] = mouse.conn.bilateralLag(data,edgeLen,round(tZone*fs),corrThr);
+        [lagTimeG6Trial,lagAmpG6Trial,~] = mouse.conn.bilateralLag(data,edgeLen,validRange,corrThr);
         lagTimeG6Trial(lagAmpG6Trial < 0) = nan;
         lagTimeG6Trial = lagTimeG6Trial./fs;
         

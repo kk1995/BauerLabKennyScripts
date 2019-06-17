@@ -126,7 +126,9 @@ else
             data1 = data1(:,:,time >= parameters.startTime);
             data2 = squeeze(xform_datafluorCorr);
             data2 = data2(:,:,time >= parameters.startTime);
-            [lagTimeTrial,lagAmpTrial,covResult] = mouse.conn.dotLag(data1,data2,edgeLen,round(tZone*fs),corrThr);
+            validRange = -edgeLen:round(tZone*fs);
+            [lagTimeTrial,lagAmpTrial,covResult] = mouse.conn.dotLag(...
+                data1,data2,edgeLen,validRange,corrThr,true,false);
             lagTimeTrial = lagTimeTrial./fs;
             
             % save lag data
