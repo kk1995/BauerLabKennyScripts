@@ -1,4 +1,4 @@
-dataFile = 'D:\data\170126\170126-2541_baseline-dataGCaMP-fc1.mat';
+dataFile = 'D:\ProcessedData\170126\170126-2541_baseline-fc1-dataFluor.mat';
 sR = 16.8;
 fMin = 0.02;
 fMax = 2;

@@ -69,7 +69,7 @@ for trial = 1:trialNum
     % instantiate VideosReader
     reader = read.VideosReader();
     reader.ReaderObject = read.TiffVideoReader;
-    reader.ReaderObject.ChNum = systemInfo.numLEDs;
+    reader.ChNum = systemInfo.numLEDs;
     reader.DarkFrameInd = darkFrameInd;
     reader.InvalidInd = systemInfo.invalidFrameInd;
     reader.FreqIn = trialInfo(trial).samplingRate;
@@ -109,14 +109,13 @@ for trial = 1:trialNum
     mask = load(maskFileName);
     
     % instantiate VideosReader
-    reader = read.VideosReader();
+    reader = mouse.read.VideosReader();
     reader.ReaderObject = read.TiffVideoReader;
-    reader.ReaderObject.ChNum = systemInfo.numLEDs;
+    reader.ChNum = systemInfo.numLEDs;
     reader.DarkFrameInd = darkFrameInd;
     reader.InvalidInd = systemInfo.invalidFrameInd;
     reader.FreqIn = trialInfo(trial).samplingRate;
     reader.FreqOut = trialInfo(trial).freqOut;
-    reader.TimeFrames = [];
     
     affineMarkers = mask.I;
     

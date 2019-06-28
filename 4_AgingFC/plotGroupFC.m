@@ -1,5 +1,7 @@
-dataFile = "L:\ProcessedData\avgFC_gsr.mat";
+dataFile = "L:\ProcessedData\deborah\avgFC_gsr.mat";
 atlasFile = "D:\data\atlas16.mat";
+hemisphereData = load("L:\ProcessedData\deborah\deborahHemisphereMask.mat");
+mask = hemisphereData.leftMask | hemisphereData.rightMask;
 
 load(dataFile);
 load(atlasFile);

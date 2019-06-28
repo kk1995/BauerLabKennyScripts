@@ -5,7 +5,7 @@ import mouse.*
 
 badDataInd = unique([reader.DarkFrameInd reader.InvalidInd]);
 realDataStart = max(badDataInd) + 1;
-reader.TimeFrames = 1:realDataStart;
+reader.LastTimeFrame = realDataStart;
 [raw,~] = reader.read(fileNames);
 raw = raw(:,:,:,size(raw,4));
 raw = single(raw);

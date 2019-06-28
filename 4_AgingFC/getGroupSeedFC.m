@@ -1,22 +1,38 @@
 excelFile = "D:\data\deborahData.xlsx";
-atlasFile = "D:\data\atlas12.mat";
-saveFile = "avgSeedFC_HbO_gsr.mat";
+% atlasFile = "D:\data\atlas12.mat";
+% atlasFile = "C:\Repositories\GitHub\BauerLab\MATLAB\parameters\+bauerParams\atlas40.mat";
+atlasFile = "C:\Repositories\GitHub\BauerLab\MATLAB\parameters\+bauerParams\seeds16.mat";
+% saveFile = "avgSeedFC_HbO_gsr.mat";
+% saveFile = "avg40SeedFC_HbO_gsr.mat";
+saveFile = "avgRefSeedFC_HbO_gsr.mat";
 saveFileTrialPrefix = "seedFC";
 rows = 2:22;
 
 load(atlasFile);
-atlasParsed = mouse.math.parseMap(atlas);
 
-numSeeds = size(atlasParsed,3);
-seeds = false(128*128,numSeeds);
+seedCenter = round((seedCenter + 5)./10*128);
+
+% numSeeds = numel(seedNames);
+% atlasParsed = mouse.math.parseMap(atlas);
+
+% seeds = false(128*128,numSeeds);
+% for seedInd = 1:numSeeds
+%     seedCenter = mouse.math.centerOfMass(atlasParsed(:,:,seedInd));
+%     seedCenter = round(seedCenter);
+%     seedCoor = mouse.math.circleCoor(seedCenter,3);
+%     seedMapInd = mouse.math.matCoor2Ind(seedCoor,[128 128]);
+%     seeds(seedMapInd,seedInd) = true;
+% end
+% seeds = reshape(seeds,128,128,[]);
+
+numSeeds = size(seedCenter,1);
+seeds = zeros(128);
 for seedInd = 1:numSeeds
-    seedCenter = mouse.math.centerOfMass(atlasParsed(:,:,seedInd));
-    seedCenter = round(seedCenter);
-    seedCoor = mouse.math.circleCoor(seedCenter,3);
+    seedCoor = mouse.math.circleCoor(seedCenter(seedInd,:),3);
     seedMapInd = mouse.math.matCoor2Ind(seedCoor,[128 128]);
-    seeds(seedMapInd,seedInd) = true;
+    seeds(seedMapInd) = seedInd;
 end
-seeds = reshape(seeds,128,128,[]);
+seeds = mouse.math.parseMap(seeds);
 
 [~,~,excelData] = xlsread(excelFile,1,['A' num2str(rows(1)) ':' xlscol(5) num2str(max(rows))]);
 
@@ -47,9 +63,9 @@ for i = 1:numel(fullRawName)
     data = squeeze(data(:,:,1,:));
     data = mouse.process.gsr(data,trialData.xform_isbrain);
     
-    seedMap = nan(128,128,12);
+    seedMap = nan(128,128,numSeeds);
     
-    for seedInd = 1:12
+    for seedInd = 1:numSeeds
         roi = seeds(:,:,seedInd);
         seedMap(:,:,seedInd) = mouse.conn.seedFCMap(data,roi);
     end
