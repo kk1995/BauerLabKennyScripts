@@ -18,8 +18,8 @@ hemoPred = zeros(128,128,size(neural,3));
 r = nan(128);
 r2 = nan(128);
 
-for xInd = 1:128
-    for yInd = 1:128
+for xInd = 1:size(neural,2)
+    for yInd = 1:size(neural,1)
         
         pixHemo = squeeze(hemo(yInd,xInd,:))';
         
